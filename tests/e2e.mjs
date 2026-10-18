@@ -956,6 +956,38 @@ try {
   check("Magic fountain heals, refills mana and dries up", gates.fountainRoom === "fountain" && gates.hpAfter > gates.hpBefore && gates.mana === gates.maxMana && gates.clearedFountain && gates.note.includes("versiegt"), `${gates.hpBefore} -> ${gates.hpAfter} HP · ${gates.mana}/${gates.maxMana} MP`);
   check("Room card draws an event-room pixel sprite", gates.roomSprite === "sprite");
 
+  // --- Trap tiles -------------------------------------------------------------
+  await evaluate(stateExpression(`(state) => {
+    state.dungeon = {
+      floor: 4,
+      size: 3,
+      types: ["start", "trap", "monster", "monster", "monster", "monster", "monster", "monster", "boss"],
+      pos: 0,
+      visited: [true, false, false, false, false, false, false, false, false],
+      cleared: [true, false, false, false, false, false, false, false, false],
+      hp: 500,
+      enemyHp: 0,
+      burn: 0,
+      frozen: false
+    };
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const trap = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    const before = Number(document.querySelector('[data-dungeon="hero-hp"]').textContent);
+    document.querySelector('[data-move="right"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      before,
+      after: Number(document.querySelector('[data-dungeon="hero-hp"]').textContent),
+      cleared: state.dungeon.cleared[1],
+      toasts: [...document.querySelectorAll('#toast-stack .toast')].map((el) => el.textContent.trim()).join(' | ')
+    };
+  })()`);
+  check("Trap tiles damage the hero and disarm after one step", trap.after < trap.before && trap.cleared === true && /Falle/.test(trap.toasts), `${trap.before} -> ${trap.after} HP · ${trap.toasts.slice(0, 40)}`);
+
   // --- Final layout + errors -------------------------------------------------
   const layout = await evaluate(`(() => {
     document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
