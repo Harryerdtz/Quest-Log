@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f0f1a" />
+  <title>QuestLog — Gamified To-Do</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app" data-theme="pixel">
+    <header class="app-header">
+      <h1 class="app-title">QuestLog</h1>
+      <div class="stats">
+        <span data-stat="level">Lv 1</span>
+        <span data-stat="xp">XP: 0 / 100</span>
+        <span data-stat="streak">Streak: 0</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel" data-panel="create">
+        <h2>Neue Quest</h2>
+        <form id="quest-form">
+          <input type="text" id="quest-title" placeholder="Quest-Titel" required />
+          <select id="quest-category">
+            <option value="daily">Daily</option>
+            <option value="active">Active</option>
+          </select>
+          <select id="quest-difficulty">
+            <option value="easy">Easy (+10)</option>
+            <option value="medium">Medium (+25)</option>
+            <option value="hard">Hard (+50)</option>
+          </select>
+          <button type="submit">Hinzufügen</button>
+        </form>
+      </section>
+
+      <section class="panel" data-panel="daily">
+        <h2>Daily Quests</h2>
+        <ul id="daily-list" class="quest-list"></ul>
+      </section>
+
+      <section class="panel" data-panel="active">
+        <h2>Active Quests</h2>
+        <ul id="active-list" class="quest-list"></ul>
+      </section>
+
+      <section class="panel" data-panel="settings">
+        <h2>Einstellungen</h2>
+        <button id="btn-export">JSON Export</button>
+        <button id="btn-import">JSON Import</button>
+        <input type="file" id="import-file" accept="application/json" hidden />
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
