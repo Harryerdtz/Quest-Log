@@ -2,6 +2,7 @@
 import { loadState, saveState, exportJSON, importJSON } from "./storage.js";
 import * as audio from "./audio.js";
 import * as QM from "./quest-manager.js";
+import * as EXT from "./logic-extended.js";
 
 const DEFAULT_STATE = {
   quests: [],
@@ -200,6 +201,11 @@ function handleListClick(event) {
     if (!quest.done) {
       state.leveledUp = false;
       const result = QM.applyCompletion(state, quest);
+      // booster
+      let xpGain = result.xpGain;
+      if (EXT.isBoosterActive(state)) xpGain = Math.round(xpGain * 2);
+      state.xp += (xpGain - result.xpGain);
+      EXT.damageBoss(state, xpGain);
       quest.done = true;
       persist();
       render();
@@ -226,11 +232,21 @@ function handleListClick(event) {
 function setup() {
   QM.updateStreak(state);
   QM.resetDailyQuests(state);
+  const idleGold = EXT.claimIdleGold(state);
+  if (idleGold > 0) console.log("Idle gold claimed:", idleGold);
+  EXT.initBoss(state);
   persist();
 
   const form = document.getElementById("quest-form");
   const dailyList = document.getElementById("daily-list");
   const activeList = document.getElementById("active-list");
+  const titleInput = document.getElementById("quest-title");
+  const diffSelect = document.getElementById("quest-difficulty");
+
+  titleInput.addEventListener("input", () => {
+    const est = EXT.estimateDifficulty(titleInput.value);
+    diffSelect.value = est.difficulty;
+  });
 
   form.addEventListener("submit", addQuest);
   dailyList.addEventListener("click", handleListClick);
