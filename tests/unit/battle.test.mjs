@@ -142,3 +142,58 @@ test("battle snapshots expose distance, hp and logs", () => {
   assert.ok(Array.isArray(snapshot.log));
   assert.equal(B.battleSnapshot(null), null);
 });
+
+test("boss specials trigger with their signature effect", () => {
+  const sequence = () => {
+    let calls = 0;
+    return () => (calls++ === 0 ? 0 : 0.5);
+  };
+
+  const dragon = makeBattle({ floor: 1, roomType: "boss", rng: sequence() });
+  dragon.hp = 5000;
+  dragon.maxHp = 5000;
+  dragon.hero.x = dragon.enemy.x - 2;
+  dragon.hero.y = dragon.enemy.y;
+  const dragonHp = dragon.hp;
+  const dragonEvents = B.enemyTurn(dragon);
+  assert.match(dragonEvents.join(" | "), /Aufschieber-Atem/);
+  assert.ok(dragon.hp < dragonHp);
+
+  const lich = makeBattle({ floor: 10, roomType: "boss", rng: sequence() });
+  lich.hp = 5000;
+  lich.maxHp = 5000;
+  lich.hero.x = lich.enemy.x - 2;
+  lich.hero.y = lich.enemy.y;
+  lich.enemy.hp = lich.enemy.maxHp - 20;
+  const lichHp = lich.enemy.hp;
+  B.enemyTurn(lich);
+  assert.ok(lich.enemy.hp > lichHp, "the lich heals from soul drain");
+
+  const golem = makeBattle({ floor: 15, roomType: "boss", rng: sequence() });
+  golem.hp = 5000;
+  golem.maxHp = 5000;
+  golem.hero.x = golem.enemy.x - 1;
+  golem.hero.y = golem.enemy.y;
+  golem.heroDefense = 9;
+  B.enemyTurn(golem);
+  assert.equal(golem.heroDefense, 6, "armor crush removes 3 defense");
+
+  const demon = makeBattle({ floor: 20, roomType: "boss", heroClass: "mage", rng: sequence() });
+  demon.hp = 5000;
+  demon.maxHp = 5000;
+  demon.hero.x = demon.enemy.x - 2;
+  demon.hero.y = demon.enemy.y;
+  demon.mana = 20;
+  B.enemyTurn(demon);
+  assert.equal(demon.mana, 14, "deadline pressure burns 6 mana");
+
+  const hydra = makeBattle({ floor: 25, roomType: "boss", rng: sequence() });
+  hydra.hp = 5000;
+  hydra.maxHp = 5000;
+  hydra.hero.x = hydra.enemy.x - 2;
+  hydra.hero.y = hydra.enemy.y;
+  const hydraHp = hydra.hp;
+  const hydraEvents = B.enemyTurn(hydra);
+  assert.match(hydraEvents.join(" | "), /Zweiter Treffer/);
+  assert.ok(hydra.hp < hydraHp);
+});

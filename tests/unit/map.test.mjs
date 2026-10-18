@@ -70,9 +70,30 @@ test("movement only walks to adjacent rooms and reveals them", () => {
 test("only monster and boss rooms start combat", () => {
   assert.equal(isCombatRoom("monster"), true);
   assert.equal(isCombatRoom("boss"), true);
-  ["start", "treasure", "merchant", "trap", "altar"].forEach((type) => {
+  ["start", "treasure", "merchant", "trap", "altar", "locked", "fountain"].forEach((type) => {
     assert.equal(isCombatRoom(type), false);
   });
+});
+
+test("every floor is seeded with a locked gate and a magic fountain", () => {
+  [1, 2, 3, 5].forEach((floor) => {
+    const generated = createFloor(floor, seeded());
+    assert.ok(generated.types.includes("locked"), `floor ${floor} has a locked door`);
+    assert.ok(generated.types.includes("fountain"), `floor ${floor} has a fountain`);
+  });
+});
+
+test("tile map decorates walls and corridors with torches, cracks and grates", () => {
+  const floor = createFloor(5, seeded());
+  const map = buildTileMap(floor);
+  const decor = map.tiles.filter((tile) => tile.decor);
+  assert.ok(decor.length >= 10, `${decor.length} decorated tiles`);
+  decor.forEach((tile) => {
+    assert.ok(["torch", "crack", "grate"].includes(tile.decor), tile.decor);
+    assert.notEqual(tile.kind, "room");
+  });
+  assert.ok(decor.some((tile) => tile.kind === "wall"));
+  assert.ok(decor.some((tile) => tile.kind === "corridor"));
 });
 
 test("normalization repairs missing or invalid maps", () => {

@@ -96,3 +96,33 @@ test("consumables expose their battle effect and template id", () => {
   assert.equal(scroll.effect, "upgrade");
   assert.equal(I.createConsumable("missing"), null);
 });
+
+test("every potion, scroll, weapon, armor and ring sprite is its own pixel art", () => {
+  const potions = Object.values(I.POTION_ICONS);
+  assert.equal(potions.length, Object.keys(I.CONSUMABLES).filter((id) => I.CONSUMABLES[id].kind === "potion").length);
+  assert.equal(new Set(potions).size, potions.length, "potions use distinct sprites");
+  potions.forEach((sprite) => {
+    assert.match(sprite, /<svg/);
+    assert.match(sprite, /<rect/);
+    assert.doesNotMatch(sprite, /[\u{1F300}-\u{1FAFF}]/u);
+  });
+
+  const scrolls = Object.values(I.SCROLL_ICONS);
+  assert.equal(new Set(scrolls).size, scrolls.length, "scrolls use distinct sprites");
+  scrolls.forEach((sprite) => assert.match(sprite, /#e9e2c8/, "scrolls are rolled parchment"));
+
+  const kinds = ["sword", "axe", "dagger", "mace", "shield", "wand", "armor", "robe", "ring", "amulet"];
+  const gearSprites = kinds.map((kind) => I.ITEM_ICONS[kind]);
+  gearSprites.forEach((sprite) => assert.match(sprite, /<svg/));
+  assert.equal(new Set(gearSprites).size, kinds.length, "every gear kind has its own silhouette");
+});
+
+test("itemIcon picks the template sprite for potions and scrolls", () => {
+  const potion = I.createConsumable("potion_greater_heal");
+  const scroll = I.createConsumable("scroll_teleport");
+  assert.equal(I.itemIcon(potion), I.POTION_ICONS.potion_greater_heal);
+  assert.equal(I.itemIcon(scroll), I.SCROLL_ICONS.scroll_teleport);
+  assert.equal(I.scrollIcon("scroll_frost"), I.SCROLL_ICONS.scroll_frost);
+  const sword = I.createItem({ floor: 3, kind: "sword", rarity: "rare" });
+  assert.equal(I.itemIcon(sword), I.ITEM_ICONS.sword);
+});

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { AVATARS, SHOP_ITEMS, buyItem, equipAvatar, getShopItem, itemPrice } from "../../js/shop.js";
 import { UPGRADES, upgradeCost } from "../../js/dungeon.js";
-import { createConsumable } from "../../js/items.js";
+import { createConsumable, createItem } from "../../js/items.js";
 
 function makeState() {
   return {
@@ -14,17 +14,49 @@ function makeState() {
   };
 }
 
-test("catalog contains class skins, boosters, scrolls and repeatable rewards", () => {
-  assert.equal(Object.keys(AVATARS).length, 8, "one skin per class plus the base roster");
-  assert.ok(SHOP_ITEMS.some((item) => item.type === "booster"));
-  assert.ok(SHOP_ITEMS.some((item) => item.type === "reward"));
+test("catalog is doubled in every shop category", () => {
+  assert.equal(Object.keys(AVATARS).length, 16, "base roster plus eight extra skins");
+  assert.equal(SHOP_ITEMS.filter((item) => item.type === "booster").length, 12);
+  assert.equal(SHOP_ITEMS.filter((item) => item.type === "scroll").length, 6);
+  assert.equal(SHOP_ITEMS.filter((item) => item.type === "reward").length, 4);
+  assert.equal(SHOP_ITEMS.filter((item) => item.type === "gear").length, 12);
   assert.equal(getShopItem("missing"), null);
   assert.ok(getShopItem("avatar_mage"));
-  assert.equal(UPGRADES.length, 8, "equipment line is expanded to eight pieces");
-  assert.equal(SHOP_ITEMS.filter((item) => item.type === "booster").length, 6);
-  assert.equal(SHOP_ITEMS.filter((item) => item.type === "scroll").length, 3);
+  assert.equal(UPGRADES.length, 8, "equipment upgrades stay at eight tracks");
   assert.ok(SHOP_ITEMS.some((item) => item.resource === "luck"));
   assert.ok(SHOP_ITEMS.some((item) => item.resource === "mana"));
+  assert.ok(SHOP_ITEMS.some((item) => item.resource === "key"));
+  assert.ok(SHOP_ITEMS.some((item) => item.resource === "heal"));
+  SHOP_ITEMS.forEach((item) => {
+    assert.ok(item.icon, `${item.id} has a pixel icon`);
+    assert.doesNotMatch(String(item.icon), /[\u{1F300}-\u{1FAFF}]/u);
+  });
+});
+
+test("all six scrolls carry their own parchment sprite", () => {
+  const scrolls = SHOP_ITEMS.filter((item) => item.type === "scroll");
+  assert.equal(scrolls.length, 6);
+  scrolls.forEach((scroll) => assert.match(scroll.icon, /<svg/));
+  const icons = new Set(scrolls.map((scroll) => scroll.icon));
+  assert.equal(icons.size, scrolls.length, "every scroll uses a distinct sprite");
+});
+
+test("gear purchases create equippable inventory items", () => {
+  const state = makeState();
+  const gear = getShopItem("gear_rune_axe");
+  const result = buyItem(state, gear, "normal", {
+    createItem: (options) => createItem(options),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.gear.kind, "axe");
+  assert.equal(result.gear.rarity, "epic");
+  assert.equal(state.gold, 2500 - gear.price);
+  assert.equal(buyItem(makeState(), gear).reason, "invalid");
+
+  const key = getShopItem("booster_key");
+  const keyState = makeState();
+  buyItem(keyState, key);
+  assert.equal(keyState.keys, 1);
 });
 
 test("scrolls land in the inventory bag instead of instantly applying", () => {

@@ -136,10 +136,10 @@ export const ELEMENT_EFFECTS = {
 };
 
 export const ELEMENTS = {
-  fire: { id: "fire", name: "Feuer", color: "#ff8a3d", weak: "frost", icon: "▲" },
-  frost: { id: "frost", name: "Frost", color: "#7fd4ff", weak: "storm", icon: "❄" },
-  storm: { id: "storm", name: "Sturm", color: "#ffcd38", weak: "shadow", icon: "⚡" },
-  shadow: { id: "shadow", name: "Schatten", color: "#a78bfa", weak: "fire", icon: "☠" },
+  fire: { id: "fire", name: "Feuer", color: "#ff8a3d", weak: "frost" },
+  frost: { id: "frost", name: "Frost", color: "#7fd4ff", weak: "storm" },
+  storm: { id: "storm", name: "Sturm", color: "#ffcd38", weak: "shadow" },
+  shadow: { id: "shadow", name: "Schatten", color: "#a78bfa", weak: "fire" },
 };
 
 export const RUNES = Object.values(ELEMENTS).map((element) => ({
@@ -148,17 +148,17 @@ export const RUNES = Object.values(ELEMENTS).map((element) => ({
 }));
 
 const ENEMY_NAMES = {
-  fire: ["Glut-Goblin", "Ofen-Imp", "Lava-Schreiber", "Brand-Fledermaus"],
-  frost: ["Frost-Slime", "Eis-Wicht", "Schnee-Golem", "Gletscher-Ratte"],
-  storm: ["Sturm-Fledermaus", "Blitz-Wicht", "Donner-Golem", "Spannungs-Geist"],
-  shadow: ["Schatten-Gespenst", "Fluch-Katze", "Nacht-Golem", "Dunkel-Slime"],
+  fire: ["Glut-Goblin", "Ofen-Imp", "Lava-Schreiber", "Brand-Fledermaus", "Ablenkungs-Wicht", "Kerzen-Kobold"],
+  frost: ["Frost-Slime", "Eis-Wicht", "Schnee-Golem", "Gletscher-Ratte", "Fokus-Skelett", "Eis-Statue"],
+  storm: ["Sturm-Fledermaus", "Blitz-Wicht", "Donner-Golem", "Spannungs-Geist", "Termin-Jäger", "Blitz-Mücke"],
+  shadow: ["Schatten-Gespenst", "Fluch-Katze", "Nacht-Golem", "Dunkel-Slime", "Schatten-Ratte", "Aufschieber"],
 };
 
 const ELITE_NAMES = {
-  fire: ["Glut-Titan", "Ofen-Koloss", "Lava-Leviathan"],
-  frost: ["Eis-Titan", "Frost-Koloss", "Gletscher-Leviathan"],
-  storm: ["Sturm-Titan", "Blitz-Koloss", "Donner-Leviathan"],
-  shadow: ["Schatten-Titan", "Fluch-Koloss", "Nacht-Leviathan"],
+  fire: ["Glut-Titan", "Ofen-Koloss", "Lava-Leviathan", "Brand-Hydra"],
+  frost: ["Eis-Titan", "Frost-Koloss", "Gletscher-Leviathan", "Fokus-Chimäre"],
+  storm: ["Sturm-Titan", "Blitz-Koloss", "Donner-Leviathan", "Fristen-Fürst"],
+  shadow: ["Schatten-Titan", "Fluch-Koloss", "Nacht-Leviathan", "Chaos-Schatten"],
 };
 
 const ELEMENT_ORDER = ["fire", "frost", "storm", "shadow"];
@@ -233,6 +233,191 @@ const ENEMY_SPRITES = {
   `,
 };
 
+export const BOSS_POOL = [
+  {
+    id: "procrastination_dragon",
+    name: "Der Prokrastinations-Drache",
+    from: 1,
+    element: "fire",
+    hpMult: 1,
+    atkMult: 1,
+    special: {
+      id: "procrastination_breath",
+      name: "Aufschieber-Atem",
+      desc: "Verschiebt deinen nächsten Zug auf morgen — schwerer Flächenschaden.",
+      chance: 0.3,
+      multiplier: 1.7,
+      range: 3,
+    },
+  },
+  {
+    id: "chaos_lich",
+    name: "Chaos-Lich",
+    from: 10,
+    element: "shadow",
+    hpMult: 1.2,
+    atkMult: 1.1,
+    special: {
+      id: "soul_drain",
+      name: "Seelenzehr",
+      desc: "Saugt Lebenskraft und heilt sich um die Hälfte des Schadens.",
+      chance: 0.35,
+      multiplier: 1.5,
+      range: 3,
+      drain: true,
+    },
+  },
+  {
+    id: "perfectionism_golem",
+    name: "Perfektionismus-Golem",
+    from: 15,
+    element: "frost",
+    hpMult: 1.35,
+    atkMult: 1.15,
+    special: {
+      id: "armor_crush",
+      name: "Panzerstoß",
+      desc: "Zertrümmert deine Rüstung: −3 Verteidigung bis zum Kampfende.",
+      chance: 0.3,
+      multiplier: 1.5,
+      range: 1,
+      sunder: 3,
+    },
+  },
+  {
+    id: "deadline_demon",
+    name: "Deadline-Dämon",
+    from: 20,
+    element: "storm",
+    hpMult: 1.45,
+    atkMult: 1.25,
+    special: {
+      id: "deadline_pressure",
+      name: "Deadline-Druck",
+      desc: "Verbrennt 6 Mana und schlägt mit Zeitdruck zu.",
+      chance: 0.35,
+      multiplier: 1.6,
+      range: 3,
+      manaburn: 6,
+    },
+  },
+  {
+    id: "inbox_hydra",
+    name: "Inbox-Hydra",
+    from: 25,
+    element: "fire",
+    hpMult: 1.55,
+    atkMult: 1.2,
+    special: {
+      id: "task_flood",
+      name: "Flut an Aufgaben",
+      desc: "Zwei Treffer pro Runde — jede ungelesene Mail ein Biss.",
+      chance: 0.3,
+      multiplier: 1.2,
+      range: 3,
+      secondHit: 0.7,
+    },
+  },
+];
+
+export const BOSS_ORDER = BOSS_POOL.map((boss) => boss.id);
+
+export function bossForFloor(floor) {
+  const safeFloor = Math.max(1, Math.floor(floor));
+  return BOSS_POOL.reduce((current, boss) => (safeFloor >= boss.from ? boss : current), BOSS_POOL[0]);
+}
+
+export function nextBossAfter(floor) {
+  const safeFloor = Math.max(1, Math.floor(floor));
+  return BOSS_POOL.find((boss) => boss.from > safeFloor) || null;
+}
+
+const BOSS_SPRITES = {
+  procrastination_dragon: `
+    <rect x="7" y="1" width="3" height="2" fill="#b32443"/>
+    <rect x="5" y="3" width="7" height="2" fill="#e94560"/>
+    <rect x="4" y="5" width="8" height="4" fill="#b32443"/>
+    <rect x="5" y="6" width="2" height="2" fill="#ffcd38"/>
+    <rect x="9" y="6" width="2" height="2" fill="#ffcd38"/>
+    <rect x="1" y="3" width="4" height="3" fill="#e94560"/>
+    <rect x="0" y="5" width="3" height="2" fill="#ff8a3d"/>
+    <rect x="12" y="3" width="4" height="3" fill="#e94560"/>
+    <rect x="14" y="5" width="2" height="2" fill="#ff8a3d"/>
+    <rect x="5" y="9" width="6" height="3" fill="#8f1f36"/>
+    <rect x="6" y="10" width="1" height="2" fill="#ffcd38"/>
+    <rect x="9" y="10" width="1" height="2" fill="#ffcd38"/>
+    <rect x="7" y="12" width="2" height="3" fill="#b32443"/>
+    <rect x="4" y="14" width="2" height="1" fill="#b32443"/>
+    <rect x="10" y="14" width="2" height="1" fill="#b32443"/>
+  `,
+  chaos_lich: `
+    <rect x="5" y="0" width="6" height="2" fill="#3a2d63"/>
+    <rect x="4" y="2" width="8" height="3" fill="#5b3fa8"/>
+    <rect x="5" y="5" width="6" height="4" fill="#e9e2c8"/>
+    <rect x="6" y="6" width="1" height="2" fill="#a78bfa"/>
+    <rect x="9" y="6" width="1" height="2" fill="#a78bfa"/>
+    <rect x="7" y="8" width="2" height="1" fill="#101216"/>
+    <rect x="5" y="9" width="6" height="4" fill="#5b3fa8"/>
+    <rect x="6" y="10" width="4" height="1" fill="#a78bfa"/>
+    <rect x="2" y="2" width="1" height="12" fill="#7a4a1f"/>
+    <rect x="1" y="1" width="3" height="2" fill="#a78bfa"/>
+    <rect x="13" y="4" width="2" height="2" fill="#a78bfa"/>
+    <rect x="12" y="6" width="1" height="1" fill="#eafcff"/>
+  `,
+  perfectionism_golem: `
+    <rect x="4" y="1" width="8" height="2" fill="#8b90a6"/>
+    <rect x="3" y="3" width="10" height="5" fill="#6c7488"/>
+    <rect x="4" y="4" width="3" height="2" fill="#7fd4ff"/>
+    <rect x="9" y="4" width="3" height="2" fill="#7fd4ff"/>
+    <rect x="4" y="8" width="8" height="4" fill="#5b6478"/>
+    <rect x="5" y="9" width="2" height="2" fill="#cfd6e6"/>
+    <rect x="9" y="9" width="2" height="2" fill="#cfd6e6"/>
+    <rect x="1" y="4" width="2" height="5" fill="#6c7488"/>
+    <rect x="13" y="4" width="2" height="5" fill="#6c7488"/>
+    <rect x="0" y="8" width="2" height="2" fill="#8b90a6"/>
+    <rect x="14" y="8" width="2" height="2" fill="#8b90a6"/>
+    <rect x="4" y="12" width="3" height="3" fill="#4a5568"/>
+    <rect x="9" y="12" width="3" height="3" fill="#4a5568"/>
+    <rect x="6" y="2" width="4" height="1" fill="#7fd4ff"/>
+  `,
+  deadline_demon: `
+    <rect x="3" y="0" width="2" height="3" fill="#e94560"/>
+    <rect x="11" y="0" width="2" height="3" fill="#e94560"/>
+    <rect x="4" y="2" width="8" height="2" fill="#8f1f36"/>
+    <rect x="4" y="4" width="8" height="4" fill="#e94560"/>
+    <rect x="5" y="5" width="2" height="2" fill="#ffcd38"/>
+    <rect x="9" y="5" width="2" height="2" fill="#ffcd38"/>
+    <rect x="6" y="7" width="4" height="1" fill="#101216"/>
+    <rect x="4" y="8" width="8" height="4" fill="#b32443"/>
+    <rect x="5" y="9" width="6" height="1" fill="#ffcd38"/>
+    <rect x="2" y="9" width="2" height="4" fill="#e94560"/>
+    <rect x="12" y="9" width="2" height="4" fill="#e94560"/>
+    <rect x="1" y="12" width="2" height="1" fill="#ffcd38"/>
+    <rect x="13" y="12" width="2" height="1" fill="#ffcd38"/>
+    <rect x="6" y="12" width="4" height="3" fill="#8f1f36"/>
+  `,
+  inbox_hydra: `
+    <rect x="2" y="2" width="4" height="3" fill="#4eef91"/>
+    <rect x="6" y="0" width="4" height="3" fill="#7fd4ff"/>
+    <rect x="10" y="2" width="4" height="3" fill="#a78bfa"/>
+    <rect x="3" y="3" width="1" height="1" fill="#101216"/>
+    <rect x="7" y="1" width="1" height="1" fill="#101216"/>
+    <rect x="12" y="3" width="1" height="1" fill="#101216"/>
+    <rect x="3" y="5" width="2" height="4" fill="#2f7d52"/>
+    <rect x="7" y="3" width="2" height="6" fill="#235a78"/>
+    <rect x="11" y="5" width="2" height="4" fill="#5b3fa8"/>
+    <rect x="4" y="9" width="8" height="4" fill="#4a5568"/>
+    <rect x="5" y="10" width="6" height="1" fill="#8b90a6"/>
+    <rect x="5" y="13" width="2" height="2" fill="#2f7d52"/>
+    <rect x="9" y="13" width="2" height="2" fill="#2f7d52"/>
+  `,
+};
+
+export function bossSprite(id, elite = false) {
+  const content = BOSS_SPRITES[id] || BOSS_SPRITES.procrastination_dragon;
+  return `${SVG_OPEN}${content}${elite ? ELITE_CROWN : ""}</svg>`;
+}
+
 export function enemySprite(element, elite = false) {
   const key = ELEMENTS[element] ? element : "fire";
   return `${SVG_OPEN}${ENEMY_SPRITES[key]}${elite ? ELITE_CROWN : ""}</svg>`;
@@ -302,10 +487,14 @@ export function createEnemy(floor, mode = "normal", options = {}) {
   const heroic = isHeroic(mode);
   const elite = Boolean(options.elite);
   const element = enemyElement(safeFloor);
+  // Rooms on the same floor roll different monsters: the variant offsets the
+  // roster so every entry (rats, skeletons, imps) is reachable over time.
+  const variant = Number.isFinite(options.variant) ? Math.floor(options.variant) : 0;
   const names = ENEMY_NAMES[element];
-  const type = names[(safeFloor - 1) % names.length];
+  const type = names[(safeFloor - 1 + variant) % names.length];
   const elitePool = ELITE_NAMES[element];
-  const eliteName = elitePool[Math.floor(safeFloor / 5 - 1) % elitePool.length];
+  const eliteTier = Math.max(0, Math.floor(safeFloor / 5) - 1);
+  const eliteName = elitePool[(eliteTier + variant) % elitePool.length];
   const weakness = ELEMENTS[element].weak;
   const growth = Math.pow(1.12, Math.max(0, safeFloor - 4));
   const hpBase = (20 + safeFloor * 8) * growth * (elite ? 2.2 : 1);
@@ -326,35 +515,39 @@ export function createEnemy(floor, mode = "normal", options = {}) {
     element,
     weakness,
     sprite: enemySprite(element, elite),
+    special: null,
     dodge: Math.min(0.2, 0.04 + safeFloor * 0.008 + (heroic ? 0.04 : 0)),
     crit: Math.min(0.25, 0.03 + safeFloor * 0.006),
   };
 }
 
-export function createRoomEnemy(floor, roomType, mode = "normal") {
-  const base = createEnemy(floor, mode);
+export function createRoomEnemy(floor, roomType, mode = "normal", options = {}) {
+  const base = createEnemy(floor, mode, options);
   if (roomType !== "boss") {
     return { ...base, bossRoom: false };
   }
 
   const safeFloor = Math.max(1, Math.floor(floor));
+  const boss = bossForFloor(safeFloor);
   const elite = safeFloor % 5 === 0;
-  const elitePool = ELITE_NAMES[base.element];
-  const eliteName = elitePool[Math.floor(safeFloor / 5 - 1) % elitePool.length];
-  const hp = Math.round(base.hp * (elite ? 2.6 : 1.55));
-  const attack = Math.round(base.attack * (elite ? 1.25 : 1.1));
-  const reward = Math.round(base.reward * (elite ? 2.3 : 1.5));
+  const hp = Math.round(base.hp * (elite ? 2.6 : 1.55) * boss.hpMult);
+  const attack = Math.round(base.attack * (elite ? 1.25 : 1.1) * boss.atkMult);
+  const reward = Math.round(base.reward * (elite ? 2.3 : 1.5) * (1 + boss.from / 60));
 
   return {
     ...base,
     boss: true,
     bossRoom: true,
     elite,
-    name: elite ? `Etagenboss: ${eliteName}` : `Raumwächter: ${base.name}`,
+    bossId: boss.id,
+    name: elite ? `${boss.name} (Elite)` : boss.name,
+    element: boss.element,
+    weakness: ELEMENTS[boss.element].weak,
     hp,
     maxHp: hp,
     attack,
     reward,
-    sprite: enemySprite(base.element, true),
+    sprite: bossSprite(boss.id, elite),
+    special: boss.special,
   };
 }

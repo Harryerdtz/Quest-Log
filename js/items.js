@@ -29,6 +29,18 @@ const TEMPLATES = {
     stats: { attack: 2, crit: 0.06 },
     names: ["Stilett", "Sicheldolch", "Schattenklinge", "Giftzahn"],
   },
+  mace: {
+    slot: "weapon",
+    label: "Streitkolben",
+    stats: { attack: 3, block: 0.02 },
+    names: ["Knüppel", "Morgenstern", "Runenkolben", "Kriegshammer"],
+  },
+  robe: {
+    slot: "armor",
+    label: "Robe",
+    stats: { defense: 1, mana: 5, spellPower: 0.06 },
+    names: ["Stoffrobe", "Mönchsgewand", "Sternenrobe", "Erzmagierrobe"],
+  },
   shield: {
     slot: "offhand",
     label: "Schild",
@@ -61,9 +73,9 @@ const TEMPLATES = {
   },
 };
 
-const WEAPON_KINDS = ["sword", "axe", "dagger"];
+const WEAPON_KINDS = ["sword", "axe", "dagger", "mace"];
 const OFFHAND_KINDS = ["shield", "wand"];
-const ARMOR_KINDS = ["armor"];
+const ARMOR_KINDS = ["armor", "robe"];
 const TRINKET_KINDS = ["ring", "amulet"];
 
 export const CONSUMABLES = {
@@ -136,15 +148,68 @@ export const CONSUMABLES = {
     value: 130,
     desc: "+4 Verteidigung für den restlichen Kampf.",
   },
+  potion_greater_heal: {
+    id: "potion_greater_heal",
+    kind: "potion",
+    name: "Großer Heiltrank",
+    rarity: "epic",
+    effect: "heal",
+    power: 0.7,
+    value: 95,
+    desc: "Heilt 70% deiner max. HP.",
+  },
+  potion_focus: {
+    id: "potion_focus",
+    kind: "potion",
+    name: "Fokustrank",
+    rarity: "rare",
+    effect: "focus",
+    amount: 0.15,
+    value: 100,
+    desc: "+15% Kritchance für den restlichen Kampf.",
+  },
+  scroll_teleport: {
+    id: "scroll_teleport",
+    kind: "scroll",
+    name: "Schriftrolle der Teleportation",
+    rarity: "rare",
+    effect: "teleport",
+    value: 140,
+    desc: "Springt auf das entfernteste freie Feld — bricht die Gegnerreichweite.",
+  },
+  scroll_frost: {
+    id: "scroll_frost",
+    kind: "scroll",
+    name: "Schriftrolle des Frosts",
+    rarity: "rare",
+    effect: "freeze",
+    power: 1.6,
+    value: 135,
+    desc: "Eisnova: 1,6× Schaden und der Gegner friert eine Runde ein.",
+  },
+  scroll_identify: {
+    id: "scroll_identify",
+    kind: "scroll",
+    name: "Schriftrolle der Identifikation",
+    rarity: "common",
+    effect: "identify",
+    value: 90,
+    desc: "Enthüllt Element und Schwäche des Gegners und hebt deine Kritchance.",
+  },
 };
 
 export const CONSUMABLE_ORDER = [
   "potion_heal",
+  "potion_greater_heal",
   "potion_mana",
+  "potion_focus",
   "potion_strength",
   "potion_invisible",
   "scroll_blast",
   "scroll_ward",
+  "scroll_teleport",
+  "scroll_frost",
+  "scroll_identify",
   "scroll_upgrade",
 ];
 
@@ -247,10 +312,15 @@ export function rollDrop({ floor = 1, elite = false, boss = false, luck = 0, rng
     const weighted = [
       ...Array(3).fill("potion_heal"),
       ...Array(2).fill("potion_mana"),
+      ...Array(2).fill("potion_focus"),
+      "potion_greater_heal",
       "potion_strength",
       "potion_invisible",
       "scroll_blast",
       "scroll_ward",
+      "scroll_teleport",
+      "scroll_frost",
+      "scroll_identify",
       "scroll_upgrade",
     ];
     const id = weighted[Math.floor(rng() * weighted.length)] || consumableIds[0];
@@ -429,10 +499,137 @@ export const ITEM_ICONS = {
     <rect x="5" y="5" width="4" height="2" fill="#ffe37a"/>
     <rect x="9" y="7" width="3" height="4" fill="#b8860b"/>
   `),
+  mace: icon(`
+    <rect x="9" y="1" width="4" height="4" fill="#cfd6e6"/>
+    <rect x="10" y="2" width="2" height="2" fill="var(--icon-accent, #ffcd38)"/>
+    <rect x="7" y="5" width="2" height="2" fill="#8b90a6"/>
+    <rect x="6" y="6" width="2" height="6" fill="#7a4a1f"/>
+    <rect x="5" y="11" width="4" height="2" fill="#b8860b"/>
+    <rect x="3" y="2" width="2" height="2" fill="#8b90a6"/>
+    <rect x="3" y="4" width="1" height="1" fill="#8b90a6"/>
+  `),
+  robe: icon(`
+    <rect x="6" y="2" width="4" height="2" fill="#f4c99a"/>
+    <rect x="4" y="4" width="8" height="3" fill="var(--icon-accent, #5b3fa8)"/>
+    <rect x="3" y="7" width="10" height="7" fill="var(--icon-accent, #5b3fa8)"/>
+    <rect x="7" y="7" width="2" height="6" fill="#e9e2c8"/>
+    <rect x="5" y="11" width="6" height="1" fill="#ffcd38"/>
+    <rect x="3" y="13" width="2" height="1" fill="#101216" opacity="0.4"/>
+    <rect x="11" y="13" width="2" height="1" fill="#101216" opacity="0.4"/>
+  `),
   misc: icon(`
     <rect x="3" y="5" width="10" height="7" fill="#8b90a6"/>
     <rect x="5" y="3" width="6" height="2" fill="#cfd6e6"/>
     <rect x="6" y="7" width="4" height="3" fill="var(--icon-accent, #ffcd38)"/>
+  `),
+};
+
+/* -------------------------------------------------------------------------
+   Scrolls: rolled parchment with a colored band, wax seal and rune mark
+   ------------------------------------------------------------------------- */
+
+const scrollSprite = ({ band, seal, mark }) => icon(`
+  <rect x="2" y="1" width="12" height="2" fill="#6d4520"/>
+  <rect x="3" y="1" width="10" height="1" fill="#a96a2c"/>
+  <rect x="3" y="3" width="10" height="10" fill="#e9e2c8"/>
+  <rect x="3" y="3" width="10" height="1" fill="#f4eeda"/>
+  <rect x="4" y="5" width="8" height="1" fill="#a7a08a"/>
+  <rect x="4" y="10" width="7" height="1" fill="#a7a08a"/>
+  <rect x="4" y="7" width="8" height="3" fill="${band}"/>
+  <rect x="6" y="7" width="4" height="3" fill="${seal}"/>
+  ${mark}
+  <rect x="2" y="12" width="12" height="2" fill="#6d4520"/>
+  <rect x="2" y="12" width="1" height="2" fill="#b8860b"/>
+  <rect x="13" y="1" width="1" height="2" fill="#b8860b"/>
+  <rect x="3" y="13" width="6" height="1" fill="#a96a2c"/>
+`);
+
+const sealDot = (color) => `<rect x="7" y="8" width="2" height="1" fill="${color}"/>`;
+
+export const SCROLL_ICONS = {
+  scroll_blast: scrollSprite({
+    band: "#8f1f36",
+    seal: "#e94560",
+    mark: `${sealDot("#fff3c4")}<rect x="8" y="7" width="1" height="1" fill="#ffcd38"/>`,
+  }),
+  scroll_upgrade: scrollSprite({
+    band: "#453080",
+    seal: "#a78bfa",
+    mark: `<rect x="6" y="8" width="4" height="1" fill="#f4eeda"/><rect x="7" y="7" width="2" height="3" fill="#f4eeda"/>`,
+  }),
+  scroll_ward: scrollSprite({
+    band: "#235a78",
+    seal: "#7fd4ff",
+    mark: `<rect x="6" y="7" width="4" height="1" fill="#eafcff"/><rect x="7" y="8" width="2" height="1" fill="#eafcff"/>`,
+  }),
+  scroll_teleport: scrollSprite({
+    band: "#1c6b58",
+    seal: "#4eef91",
+    mark: `<rect x="6" y="7" width="3" height="1" fill="#eafff4"/><rect x="8" y="8" width="1" height="1" fill="#eafff4"/>`,
+  }),
+  scroll_frost: scrollSprite({
+    band: "#235a78",
+    seal: "#eafcff",
+    mark: `<rect x="6" y="7" width="1" height="2" fill="#235a78"/><rect x="7" y="8" width="2" height="1" fill="#235a78"/><rect x="9" y="7" width="1" height="2" fill="#235a78"/>`,
+  }),
+  scroll_identify: scrollSprite({
+    band: "#7a5a12",
+    seal: "#ffcd38",
+    mark: `<rect x="6" y="8" width="4" height="1" fill="#101216"/><rect x="7" y="7" width="2" height="3" fill="#101216"/>`,
+  }),
+};
+
+/* -------------------------------------------------------------------------
+   Potions: distinct silhouettes and liquid colors per brew
+   ------------------------------------------------------------------------- */
+
+const flaskPotion = ({ liquid, dark, cork = "#8b90a6", spark = "#ffffff" }) => icon(`
+  <rect x="6" y="1" width="4" height="2" fill="${cork}"/>
+  <rect x="5" y="3" width="6" height="1" fill="#cfd6e6"/>
+  <rect x="4" y="4" width="8" height="3" fill="${dark}"/>
+  <rect x="3" y="7" width="10" height="6" fill="${liquid}"/>
+  <rect x="3" y="7" width="10" height="1" fill="${dark}"/>
+  <rect x="4" y="12" width="8" height="1" fill="#101216" opacity="0.45"/>
+  <rect x="4" y="5" width="2" height="2" fill="${spark}" opacity="0.4"/>
+`);
+
+const vialPotion = ({ liquid, dark, cork = "#8b90a6" }) => icon(`
+  <rect x="6" y="1" width="4" height="2" fill="${cork}"/>
+  <rect x="5" y="3" width="6" height="2" fill="${dark}"/>
+  <rect x="5" y="5" width="6" height="9" fill="${liquid}"/>
+  <rect x="5" y="5" width="2" height="4" fill="#ffffff" opacity="0.3"/>
+  <rect x="6" y="12" width="4" height="1" fill="#101216" opacity="0.4"/>
+`);
+
+const widePotion = ({ liquid, dark, cork = "#b8860b" }) => icon(`
+  <rect x="5" y="1" width="6" height="2" fill="${cork}"/>
+  <rect x="4" y="3" width="8" height="11" fill="${dark}"/>
+  <rect x="5" y="4" width="6" height="9" fill="${liquid}"/>
+  <rect x="6" y="6" width="4" height="4" fill="#ffffff" opacity="0.22"/>
+  <rect x="4" y="13" width="8" height="1" fill="#101216" opacity="0.45"/>
+`);
+
+export const POTION_ICONS = {
+  potion_heal: flaskPotion({ liquid: "#e94560", dark: "#8f1f36" }),
+  potion_greater_heal: icon(`
+    <rect x="5" y="1" width="6" height="2" fill="#ffcd38"/>
+    <rect x="4" y="3" width="8" height="3" fill="#8f1f36"/>
+    <rect x="2" y="6" width="12" height="8" fill="#e94560"/>
+    <rect x="3" y="7" width="10" height="1" fill="#ff9fae"/>
+    <rect x="6" y="8" width="4" height="1" fill="#f4eeda"/>
+    <rect x="7" y="7" width="2" height="4" fill="#f4eeda"/>
+    <rect x="2" y="13" width="12" height="1" fill="#101216" opacity="0.45"/>
+  `),
+  potion_mana: vialPotion({ liquid: "#4f8fff", dark: "#2b4f9e" }),
+  potion_focus: vialPotion({ liquid: "#4eef91", dark: "#1c6b58" }),
+  potion_strength: widePotion({ liquid: "#ff8a3d", dark: "#8f3f14" }),
+  potion_invisible: icon(`
+    <rect x="6" y="1" width="4" height="2" fill="#dfe3f0"/>
+    <rect x="5" y="3" width="6" height="2" fill="#a78bfa"/>
+    <rect x="5" y="5" width="6" height="9" fill="#a78bfa" opacity="0.55"/>
+    <rect x="6" y="6" width="2" height="4" fill="#eafcff" opacity="0.6"/>
+    <rect x="9" y="10" width="1" height="1" fill="#eafcff"/>
+    <rect x="7" y="12" width="3" height="1" fill="#101216" opacity="0.4"/>
   `),
 };
 
@@ -446,10 +643,16 @@ export const SLOT_ICONS = {
 
 export function itemIcon(item) {
   if (!item) return ITEM_ICONS.misc;
+  if (item.templateId && SCROLL_ICONS[item.templateId]) return SCROLL_ICONS[item.templateId];
+  if (item.templateId && POTION_ICONS[item.templateId]) return POTION_ICONS[item.templateId];
   if (item.type === "equipment") return ITEM_ICONS[item.kind] || ITEM_ICONS.misc;
-  if (item.kind === "scroll" || item.effect === "upgrade" || item.type === "scroll") return ITEM_ICONS.scroll;
-  if (item.effect === "mana") return ITEM_ICONS.potion;
-  return ITEM_ICONS.potion;
+  if (item.kind === "scroll" || item.type === "scroll") return SCROLL_ICONS.scroll_blast;
+  if (item.kind === "potion" || item.type === "consumable") return POTION_ICONS.potion_heal;
+  return ITEM_ICONS.misc;
+}
+
+export function scrollIcon(id) {
+  return SCROLL_ICONS[id] || ITEM_ICONS.scroll;
 }
 
 export function iconFor(kind) {

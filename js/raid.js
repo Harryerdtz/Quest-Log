@@ -1,16 +1,12 @@
 // raid.js — boss raid, quest gold and idle loot with difficulty modes
+import { BOSS_POOL } from "./dungeon.js";
+
 export const LOOT_INTERVAL = 40000;
 export const LOOT_CAP = 45;
 const HEROIC_INTERVAL = 60000;
 const HEROIC_CAP = 30;
 
-const BOSS_NAMES = [
-  "Der Prokrastinations-Drache",
-  "Der Papierkram-Golem",
-  "Die Inbox-Hydra",
-  "Der Deadline-Dämon",
-  "Der Montags-Moloch",
-];
+const BOSS_NAMES = [...BOSS_POOL.map((boss) => boss.name), "Der Montags-Moloch"];
 
 const QUEST_GOLD = { easy: 5, medium: 10, hard: 20, boss: 40 };
 

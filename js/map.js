@@ -1,12 +1,14 @@
 // map.js — Shattered-Pixel-style room exploration for QuestLog
 export const ROOM_TYPES = {
-  start: { name: "Eingang", icon: "◆", desc: "Der Eingang. Von hier aus beginnt dein Run." },
-  monster: { name: "Monster-Raum", icon: "⚔", desc: "Ein Gegner versperrt den Weg." },
-  treasure: { name: "Schatzkammer", icon: "▣", desc: "Eine verstaubte Truhe mit Gold." },
-  merchant: { name: "Händler", icon: "⚑", desc: "Ein reisender Händler bietet Tränke und Runen." },
-  trap: { name: "Falle", icon: "✖", desc: "Der Boden ist mit Stacheln gespickt." },
-  altar: { name: "Magie-Altar", icon: "✦", desc: "Ein Altar mit einer schlummernden Rune." },
-  boss: { name: "Boss-Raum", icon: "☠", desc: "Der Wächter der Etage erwartet dich." },
+  start: { name: "Eingang", desc: "Der Eingang. Von hier aus beginnt dein Run." },
+  monster: { name: "Monster-Raum", desc: "Ein Gegner versperrt den Weg." },
+  treasure: { name: "Schatzkammer", desc: "Eine verstaubte Truhe mit Gold — und vielleicht einem Schlüssel." },
+  merchant: { name: "Händler", desc: "Ein reisender Händler bietet Tränke und Runen." },
+  trap: { name: "Falle", desc: "Der Boden ist mit Stacheln gespickt." },
+  altar: { name: "Magie-Altar", desc: "Ein Altar mit einer schlummernden Rune." },
+  locked: { name: "Verschlossene Pforte", desc: "Eine schwere Tür mit Runenschloss. Ein Schlüssel öffnet sie." },
+  fountain: { name: "Magischer Brunnen", desc: "Klares Wasser pulsiert vor Energie. Ein Schluck heilt Wunden." },
+  boss: { name: "Boss-Raum", desc: "Der Wächter der Etage erwartet dich." },
 };
 
 export const DIRECTIONS = {
@@ -49,10 +51,10 @@ export function createFloor(floor, rng = Math.random) {
   );
   const counts =
     size === 3
-      ? { treasure: 1, merchant: 1, trap: 1, altar: 1 }
+      ? { treasure: 1, merchant: 1, trap: 1, altar: 1, locked: 1, fountain: 1 }
       : size === 4
-        ? { treasure: 2, merchant: 1, trap: 2, altar: 1 }
-        : { treasure: 3, merchant: 1, trap: 3, altar: 2 };
+        ? { treasure: 2, merchant: 1, trap: 2, altar: 1, locked: 1, fountain: 1 }
+        : { treasure: 3, merchant: 1, trap: 3, altar: 2, locked: 1, fountain: 1 };
 
   let cursor = 0;
   Object.entries(counts).forEach(([type, count]) => {
@@ -251,6 +253,27 @@ export const ROOM_SPRITES = {
     <rect x="3" y="10" width="10" height="3" fill="#6c7488"/>
     <rect x="5" y="11" width="6" height="1" fill="#101216"/>
   `),
+  locked: px(`
+    <rect x="3" y="1" width="10" height="13" fill="#7a4a1f"/>
+    <rect x="4" y="2" width="8" height="11" fill="#a96a2c"/>
+    <rect x="5" y="3" width="6" height="9" fill="#8a5a2b"/>
+    <rect x="5" y="4" width="6" height="1" fill="#b8860b"/>
+    <rect x="5" y="10" width="6" height="1" fill="#b8860b"/>
+    <rect x="7" y="6" width="3" height="3" fill="#ffcd38"/>
+    <rect x="8" y="7" width="1" height="1" fill="#101216"/>
+    <rect x="12" y="6" width="1" height="2" fill="#cfd6e6"/>
+  `),
+  fountain: px(`
+    <rect x="2" y="9" width="12" height="4" fill="#8b90a6"/>
+    <rect x="3" y="8" width="10" height="1" fill="#cfd6e6"/>
+    <rect x="4" y="9" width="8" height="2" fill="#4f8fff"/>
+    <rect x="5" y="9" width="2" height="1" fill="#eafcff"/>
+    <rect x="6" y="4" width="4" height="1" fill="#7fd4ff"/>
+    <rect x="7" y="2" width="2" height="3" fill="#4f8fff"/>
+    <rect x="4" y="6" width="2" height="1" fill="#7fd4ff"/>
+    <rect x="10" y="5" width="2" height="1" fill="#7fd4ff"/>
+    <rect x="2" y="13" width="12" height="1" fill="#6c7488"/>
+  `),
   boss: px(`
     <rect x="3" y="4" width="10" height="6" fill="#e9e2c8"/>
     <rect x="4" y="3" width="8" height="1" fill="#e9e2c8"/>
@@ -332,6 +355,18 @@ export function buildTileMap(dungeon) {
       visibleTile(tile.x, tile.y - 1) ||
       visibleTile(tile.x, tile.y + 1);
     tile.lit = tile.seen;
+  });
+
+  const floorSeed = Math.max(1, Math.floor(dungeon.floor || 1));
+  tiles.forEach((tile) => {
+    if (tile.kind === "room") return;
+    const seed = Math.abs((tile.x * 73856093) ^ (tile.y * 19349663) ^ (floorSeed * 83492791));
+    if (tile.kind === "wall") {
+      const wallNeighbour = visibleTile(tile.x, tile.y + 1) || visibleTile(tile.x, tile.y - 1);
+      tile.decor = wallNeighbour && seed % 5 === 0 ? "torch" : seed % 7 === 0 ? "crack" : null;
+    } else {
+      tile.decor = seed % 9 === 0 ? "grate" : seed % 6 === 0 ? "crack" : null;
+    }
   });
 
   return { dim, tiles };

@@ -13,12 +13,12 @@ npm run test:all  # both
 | File | Coverage |
 | --- | --- |
 | `classes.test.mjs` | five hero classes with pixel sprites, passives, stat deltas, skills and mana |
-| `battle.test.mjs` | turn-based 7×5 grid, movement/obstacles, melee vs ranged, skills, consumables, defeat/flee |
-| `items.test.mjs` | rarity tiers and scaling, drop tables, depth/elite luck, upgrades, sell values, comparisons |
+| `battle.test.mjs` | turn-based 7×5 grid, movement/obstacles, melee vs ranged, skills, boss specials, consumables, defeat/flee |
+| `items.test.mjs` | rarity tiers and scaling, drop tables, depth/elite luck, upgrades, sell values, comparisons, distinct potion/scroll/gear pixel sprites |
 | `inventory.test.mjs` | paperdoll equip/swap/unequip, six quick slots, consumable stacking, gold/scroll upgrades, selling, gear buffs, save normalization |
-| `dungeon.test.mjs` | upgrade costs, class/gear stat stacking, elite guardians, element weaknesses, sprites, heroic scaling |
-| `map.test.mjs` | 3×3–5×5 floor generation, room types, adjacency movement, fog of war, tile map with walls/corridors, room sprites, map repair |
-| `shop.test.mjs` | class skins, boosters, scrolls, heroic 1.75× pricing, purchases and equipping |
+| `dungeon.test.mjs` | upgrade costs, class/gear stat stacking, elite guardians, the five-boss pool with specials and sprites, per-room monster variants, element weaknesses, heroic scaling |
+| `map.test.mjs` | 3×3–5×5 floor generation, room types including locked gates and fountains, adjacency movement, fog of war, tile map with walls/corridors and torch/crack/grate decor, room sprites, map repair |
+| `shop.test.mjs` | class skins, boosters, scrolls, gear, heroic 1.75× pricing, purchases and equipping |
 | `raid.test.mjs` | boss HP/rewards, quest gold, idle-loot pacing/cap/collection |
 | `storage.test.mjs` | LocalStorage roundtrip and corrupt-save handling |
 | `quest.test.mjs` | XP curve, level-ups, streak handling, daily reset |
@@ -32,6 +32,11 @@ The script starts its own static server and a headless Chrome instance, then dri
 - dungeon tile map: 49 tiles with walls, 12 corridors, fogged rooms, room sprites and the hero token
 - tactical battle grid: 35 tiles, hero/enemy tokens, DPad grid movement, melee/ranged labels, retro terminal battle log
 - inventory grid: 4 compact 44px paperdoll slots, 2×3 hotbar, 28-slot bag (4×7) of small pixel sprites with stack badges, item inspector with comparison, click-to-equip on the paperdoll, drag & drop zones and gold upgrades
+- no-emoji enforcement: text nodes and ARIA labels are scanned for pictographs, DPad arrows are CSS triangles, the loot button uses a pixel icon
+- parchment scrolls: six distinct rolled-scroll sprites inside the shop slot size
+- gear shop: buying equipment drops a pixel tile into the inventory grid
+- boss progression: raid levels rotate through the shared boss pool with scaled HP
+- map details and event rooms: wall/corridor decor, locked gates that consume a bought key, and a fountain that heals, refills mana and dries up
 - sprite caps: 32px map hero/monster sprites so the tile map stays visible
 - elemental elite sprite/crown, daily elite bonus (only once per day)
 - run reset (with confirmation) that keeps gold and deepest floor

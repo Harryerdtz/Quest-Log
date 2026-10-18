@@ -67,10 +67,60 @@ test("every fifth floor's guardian is an elite with a big HP jump", () => {
   const f5 = D.createRoomEnemy(5, "boss");
   assert.equal(f4.elite, false);
   assert.equal(f5.elite, true);
-  assert.match(f5.name, /^Etagenboss:/);
+  assert.match(f5.name, /\(Elite\)$/);
   assert.ok(f5.hp > f4.hp * 2);
   assert.ok(D.createEnemy(6).hp > D.createEnemy(4).hp);
   assert.ok(D.createEnemy(10).hp > D.createEnemy(6).hp);
+});
+
+test("bosses progress from the dragon to lich, golem, demon and hydra", () => {
+  assert.equal(D.createRoomEnemy(1, "boss").bossId, "procrastination_dragon");
+  assert.equal(D.createRoomEnemy(9, "boss").name, "Der Prokrastinations-Drache");
+  assert.equal(D.createRoomEnemy(10, "boss").bossId, "chaos_lich");
+  assert.equal(D.createRoomEnemy(14, "boss").name, "Chaos-Lich");
+  assert.equal(D.createRoomEnemy(15, "boss").bossId, "perfectionism_golem");
+  assert.equal(D.createRoomEnemy(20, "boss").bossId, "deadline_demon");
+  assert.equal(D.createRoomEnemy(25, "boss").bossId, "inbox_hydra");
+  assert.equal(D.bossForFloor(3).id, "procrastination_dragon");
+  assert.equal(D.nextBossAfter(9).id, "chaos_lich");
+  assert.equal(D.nextBossAfter(99), null);
+  D.BOSS_POOL.forEach((boss) => {
+    assert.ok(boss.special.name);
+    assert.ok(boss.special.chance > 0 && boss.special.chance < 1);
+    assert.match(D.bossSprite(boss.id), /<svg/);
+    assert.doesNotMatch(D.bossSprite(boss.id), /enemy-crown/);
+    assert.match(D.bossSprite(boss.id, true), /enemy-crown/);
+    assert.ok(D.createRoomEnemy(boss.from, "boss").special);
+  });
+  const eliteGuardian = D.createRoomEnemy(5, "boss");
+  assert.equal(eliteGuardian.elite, true);
+  assert.match(eliteGuardian.sprite, /enemy-crown/);
+});
+
+test("normal and elite monster pools cover the new floor roster", () => {
+  const early = new Set();
+  const elite = new Set();
+  for (let floor = 1; floor <= 12; floor += 1) {
+    for (let variant = 0; variant < 6; variant += 1) {
+      const normal = D.createEnemy(floor, "normal", { variant });
+      const tough = D.createEnemy(floor, "normal", { variant, elite: true });
+      early.add(normal.name);
+      elite.add(tough.name);
+      assert.match(normal.name, /^[A-Za-zÄÖÜäöüß-]+$/, `${normal.name} is a real monster name`);
+      assert.match(tough.name, /^Elite: [A-Za-zÄÖÜäöüß-]+$/, `${tough.name} is a real elite name`);
+    }
+  }
+  ["Ablenkungs-Wicht", "Fokus-Skelett", "Schatten-Ratte"].forEach((name) => {
+    assert.ok(early.has(name), `${name} appears in normal rooms`);
+  });
+  assert.ok(early.size >= 20, `normal roster stays broad — ${early.size} names`);
+  assert.ok(elite.size >= 12, `elite roster stays broad — ${elite.size} names`);
+});
+
+test("same floor rooms roll different monsters via the variant offset", () => {
+  const variants = [0, 1, 2, 3].map((variant) => D.createEnemy(6, "normal", { variant }).name);
+  assert.equal(new Set(variants).size, variants.length);
+  assert.equal(D.createEnemy(6, "normal").name, variants[0]);
 });
 
 test("elements cycle and weaknesses resolve correctly", () => {

@@ -861,8 +861,15 @@ input[type="text"]:focus {
 }
 
 .quest-empty::before {
-  content: "▸ ";
-  color: var(--gold);
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 6px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--gold);
+  vertical-align: middle;
 }
 
 /* --------------------------------------------------------------------------
@@ -2304,9 +2311,13 @@ input[type="text"]:focus {
 }
 
 .toast::before {
-  content: "◆";
+  content: "";
   flex: 0 0 auto;
-  color: var(--gold);
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px #101216;
+  transform: rotate(45deg);
 }
 
 .toast--green {
@@ -6457,4 +6468,170 @@ button.is-pressed {
     width: 38px;
     height: 38px;
   }
+}
+
+/* ==========================================================================
+   Pixel-art content pass — scroll sprites, map decor, keys and boss specials
+   ========================================================================== */
+
+/* --- Map decoration: torches, cracks, floor grates ----------------------- */
+
+.tile {
+  position: relative;
+}
+
+.tile__decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tile__decor--torch::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  width: 3px;
+  height: 4px;
+  background: #ffcd38;
+  box-shadow:
+    0 0 6px 2px rgba(255, 173, 64, 0.45),
+    -2px 3px 0 #e94560,
+    2px 3px 0 #e94560,
+    0 4px 0 #b32443;
+  transform: translateX(-50%);
+  animation: torch-flicker 1.8s steps(2, end) infinite;
+}
+
+.tile__decor--crack::before {
+  content: "";
+  position: absolute;
+  inset: 12% 14%;
+  background:
+    linear-gradient(115deg, transparent 46%, #0b0e14 46% 54%, transparent 54%),
+    linear-gradient(65deg, transparent 52%, #0b0e14 52% 58%, transparent 58%);
+  opacity: 0.75;
+}
+
+.tile__decor--grate::before {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  background: repeating-linear-gradient(90deg, #141a24 0 2px, transparent 2px 4px);
+  opacity: 0.9;
+}
+
+@keyframes torch-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+/* --- Room card sprite ---------------------------------------------------- */
+
+.room-card__icon svg {
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
+}
+
+.room-card__icon {
+  color: transparent;
+}
+
+/* --- Shop sprites (scrolls, potions, gear) ------------------------------ */
+
+.shop-card__preview .item-sprite {
+  display: block;
+  width: 52px;
+  height: 52px;
+  max-width: 72px;
+  max-height: 72px;
+}
+
+.shop-card--rune .shop-card__preview .shop-icon {
+  width: 40px;
+  height: 40px;
+}
+
+/* --- Keys and boss special readouts ------------------------------------- */
+
+.dungeon-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8px;
+  color: var(--gold-soft);
+}
+
+.dungeon-keys .key-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.dungeon-keys b {
+  font-family: var(--font-display);
+  font-size: 7px;
+  color: var(--gold);
+}
+
+.battle-special {
+  display: block;
+  margin-top: 2px;
+  font-size: 8px;
+  color: var(--magenta);
+}
+
+@media (max-width: 700px) {
+  .shop-card__preview .item-sprite {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   No-emoji iconography: CSS shapes and pixel SVGs instead of glyph emojis
+   -------------------------------------------------------------------------- */
+
+.pixel-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  shape-rendering: crispEdges;
+}
+
+.btn__icon .pixel-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.dpad__arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid currentColor;
+}
+
+.dpad__btn--up .dpad__arrow {
+  transform: translateY(-1px);
+}
+
+.dpad__btn--down .dpad__arrow {
+  transform: rotate(180deg) translateY(-1px);
+}
+
+.dpad__btn--left .dpad__arrow {
+  transform: rotate(-90deg) translateY(-1px);
+}
+
+.dpad__btn--right .dpad__arrow {
+  transform: rotate(90deg) translateY(-1px);
+}
+
+.dpad__center::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px #0d0f15;
 }

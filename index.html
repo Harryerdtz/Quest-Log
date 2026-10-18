@@ -148,18 +148,15 @@
                 <div class="dropdown" data-dropdown="category">
                   <input type="hidden" id="quest-category" name="category" value="daily" />
                   <button type="button" class="dropdown__trigger" id="category-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="category-label category-trigger">
-                    <span class="dropdown__icon" data-dropdown-icon aria-hidden="true">◆</span>
                     <span class="dropdown__value" data-dropdown-value>Täglich</span>
                     <span class="dropdown__chevron" aria-hidden="true"></span>
                   </button>
                   <ul class="dropdown__menu" role="listbox" aria-labelledby="category-label" hidden>
-                    <li class="dropdown__option is-selected" role="option" aria-selected="true" data-value="daily" data-label="Täglich" data-icon="◆" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">◆</span>
+                    <li class="dropdown__option is-selected" role="option" aria-selected="true" data-value="daily" data-label="Täglich" tabindex="-1">
                       <span class="dropdown__option-text">Täglich</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="active" data-label="Aktiv" data-icon="▲" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">▲</span>
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="active" data-label="Aktiv" tabindex="-1">
                       <span class="dropdown__option-text">Aktiv</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
@@ -172,38 +169,32 @@
                 <div class="dropdown" data-dropdown="difficulty">
                   <input type="hidden" id="quest-difficulty" name="difficulty" value="auto" />
                   <button type="button" class="dropdown__trigger dropdown__trigger--xp" id="difficulty-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="difficulty-label difficulty-trigger">
-                    <span class="dropdown__icon" data-dropdown-icon aria-hidden="true">✦</span>
                     <span class="dropdown__value" data-dropdown-value>AUTO</span>
                     <span class="xp-badge" data-xp-badge>+25 XP</span>
                     <span class="dropdown__chevron" aria-hidden="true"></span>
                   </button>
                   <ul class="dropdown__menu" role="listbox" aria-labelledby="difficulty-label" hidden>
-                    <li class="dropdown__option is-selected" role="option" aria-selected="true" data-value="auto" data-label="AUTO" data-icon="✦" data-difficulty="medium" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">✦</span>
+                    <li class="dropdown__option is-selected" role="option" aria-selected="true" data-value="auto" data-label="AUTO" data-difficulty="medium" tabindex="-1">
                       <span class="dropdown__option-text">AUTO</span>
                       <span class="dropdown__option-xp" data-option-xp>+25 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="easy" data-label="Leicht" data-icon="◇" data-difficulty="easy" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">◇</span>
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="easy" data-label="Leicht" data-difficulty="easy" tabindex="-1">
                       <span class="dropdown__option-text">Leicht</span>
                       <span class="dropdown__option-xp" data-option-xp>+10 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="medium" data-label="Mittel" data-icon="◆" data-difficulty="medium" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">◆</span>
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="medium" data-label="Mittel" data-difficulty="medium" tabindex="-1">
                       <span class="dropdown__option-text">Mittel</span>
                       <span class="dropdown__option-xp" data-option-xp>+25 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="hard" data-label="Schwer" data-icon="◆" data-difficulty="hard" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">◆</span>
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="hard" data-label="Schwer" data-difficulty="hard" tabindex="-1">
                       <span class="dropdown__option-text">Schwer</span>
                       <span class="dropdown__option-xp" data-option-xp>+50 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="boss" data-label="Boss" data-icon="★" data-difficulty="boss" tabindex="-1">
-                      <span class="dropdown__option-icon" aria-hidden="true">★</span>
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="boss" data-label="Boss" data-difficulty="boss" tabindex="-1">
                       <span class="dropdown__option-text">Boss</span>
                       <span class="dropdown__option-xp" data-option-xp>+100 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
@@ -343,7 +334,16 @@
             </div>
 
             <button class="btn btn--ghost loot-btn" id="loot-collect" type="button" disabled>
-              <span class="btn__icon" aria-hidden="true">▣</span>
+              <span class="btn__icon" aria-hidden="true">
+                <svg class="pixel-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+                  <rect x="2" y="1" width="8" height="2" fill="#cfd6e6" />
+                  <rect x="1" y="3" width="10" height="8" fill="#8b90a6" />
+                  <rect x="2" y="4" width="8" height="1" fill="#a9b0c4" />
+                  <rect x="4" y="3" width="4" height="8" fill="#b8860b" />
+                  <rect x="5" y="5" width="2" height="2" fill="#ffcd38" />
+                  <rect x="1" y="11" width="10" height="1" fill="#4a5568" />
+                </svg>
+              </span>
               <span data-loot="button">Loot sammelt sich …</span>
             </button>
           </aside>
@@ -383,7 +383,13 @@
             </div>
 
             <div class="room-card" id="room-card" data-room-type="start">
-              <span class="room-card__icon" data-room="icon" aria-hidden="true">◆</span>
+              <span class="room-card__icon" data-room="icon" aria-hidden="true">
+                <svg class="pixel-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+                  <rect x="3" y="3" width="10" height="10" fill="#8b90a6" />
+                  <rect x="4" y="4" width="8" height="8" fill="#0d0f15" />
+                  <rect x="6" y="6" width="4" height="4" fill="#ffcd38" />
+                </svg>
+              </span>
               <div class="room-card__body">
                 <h3 class="room-card__name" data-room="name">Eingang</h3>
                 <p class="room-card__desc" data-room="desc">Der Eingang. Von hier aus beginnt dein Run.</p>
@@ -407,7 +413,7 @@
                     <div class="mini-hp__fill mini-hp__fill--enemy" data-dungeon="enemy-hp-fill"></div>
                     <span class="mini-hp__label"><span data-dungeon="enemy-hp">28</span>/<span data-dungeon="enemy-maxhp">28</span> HP</span>
                   </div>
-                  <span class="battle-side__meta">ANG <b data-dungeon="enemy-attack">5</b> · AUS <b data-dungeon="enemy-dodge">8%</b> · Element <b data-dungeon="enemy-element">Frost</b> · schwach <b data-dungeon="enemy-weakness">Sturm</b></span>
+                  <span class="battle-side__meta">ANG <b data-dungeon="enemy-attack">5</b> · AUS <b data-dungeon="enemy-dodge">8%</b> · Element <b data-dungeon="enemy-element">Frost</b> · schwach <b data-dungeon="enemy-weakness">Sturm</b><span class="battle-special" data-dungeon="enemy-special"></span></span>
                 </div>
               </div>
 
@@ -442,11 +448,11 @@
 
             <div class="dungeon-controls">
               <div class="dpad" role="group" aria-label="Bewegung durch das Verlies">
-                <button class="dpad__btn dpad__btn--up" type="button" data-move="up" aria-label="Nach oben gehen">▲</button>
-                <button class="dpad__btn dpad__btn--left" type="button" data-move="left" aria-label="Nach links gehen">◀</button>
-                <span class="dpad__center" aria-hidden="true">◆</span>
-                <button class="dpad__btn dpad__btn--right" type="button" data-move="right" aria-label="Nach rechts gehen">▶</button>
-                <button class="dpad__btn dpad__btn--down" type="button" data-move="down" aria-label="Nach unten gehen">▼</button>
+                <button class="dpad__btn dpad__btn--up" type="button" data-move="up" aria-label="Nach oben gehen"><span class="dpad__arrow" aria-hidden="true"></span></button>
+                <button class="dpad__btn dpad__btn--left" type="button" data-move="left" aria-label="Nach links gehen"><span class="dpad__arrow" aria-hidden="true"></span></button>
+                <span class="dpad__center" aria-hidden="true"></span>
+                <button class="dpad__btn dpad__btn--right" type="button" data-move="right" aria-label="Nach rechts gehen"><span class="dpad__arrow" aria-hidden="true"></span></button>
+                <button class="dpad__btn dpad__btn--down" type="button" data-move="down" aria-label="Nach unten gehen"><span class="dpad__arrow" aria-hidden="true"></span></button>
               </div>
 
               <div class="dungeon-controls__actions">
@@ -460,6 +466,16 @@
 
             <div class="dungeon-meta-row">
               <span class="dungeon-reward">Beute <span class="coin-icon-wrap"><svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="0" width="4" height="1" fill="#ffcd38"/><rect x="1" y="1" width="6" height="6" fill="#ffcd38"/><rect x="2" y="7" width="4" height="1" fill="#ffcd38"/><rect x="2" y="1" width="4" height="1" fill="#ffe37a"/><rect x="5" y="2" width="2" height="4" fill="#b8860b"/><rect x="2" y="6" width="4" height="1" fill="#b8860b"/></svg></span> <span data-dungeon="reward">0</span></span>
+              <span class="dungeon-keys" aria-label="Schlüssel im Beutel">
+                <svg class="key-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+                  <rect x="1" y="4" width="4" height="4" fill="#ffcd38"/>
+                  <rect x="2" y="5" width="2" height="2" fill="#101216"/>
+                  <rect x="5" y="5" width="5" height="2" fill="#ffcd38"/>
+                  <rect x="9" y="7" width="2" height="2" fill="#ffcd38"/>
+                  <rect x="5" y="7" width="1" height="2" fill="#ffcd38"/>
+                </svg>
+                Schlüssel <b data-dungeon="keys">0</b>
+              </span>
               <span class="dungeon-runes-owned" data-dungeon="runes-owned">0/4 Runen</span>
             </div>
             <p class="dungeon-hint" data-dungeon="status">Bewege dich mit dem DPad. Kämpfe starten erst im Monster- oder Boss-Raum.</p>
@@ -668,7 +684,7 @@
 
   <div class="levelup-banner" id="levelup-banner" role="status" aria-live="polite" hidden>
     <div class="levelup-banner__inner">
-      <p class="levelup-banner__kicker">★ Level Up ★</p>
+      <p class="levelup-banner__kicker">LEVEL UP</p>
       <p class="levelup-banner__level" data-levelup-level>2</p>
       <p class="levelup-banner__text">Neue Stufe erreicht!</p>
     </div>

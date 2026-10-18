@@ -279,6 +279,41 @@ try {
   check("Compact mobile header", structure.headerHeight < 170, `${structure.headerHeight}px`);
   check("No horizontal mobile overflow", structure.overflow <= 0, `${structure.overflow}px`);
 
+  // --- No-emoji enforcement ---------------------------------------------------
+  const emojiSweep = await evaluate(`(() => {
+    const pattern = /[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{2190}-\\u{21FF}\\u{2500}-\\u{25FF}\\u{FE0F}\\u{200D}]/u;
+    const offenders = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      const text = (node.textContent || '').trim();
+      if (text && pattern.test(text)) offenders.push(text.slice(0, 40));
+      node = walker.nextNode();
+    }
+    const attrOffenders = [...document.querySelectorAll('[aria-label], [title], [placeholder]')]
+      .flatMap((el) => ['aria-label', 'title', 'placeholder'].map((name) => el.getAttribute(name) || ''))
+      .filter((value) => pattern.test(value))
+      .map((value) => value.slice(0, 40));
+    return {
+      offenders: offenders.slice(0, 4),
+      attrOffenders: attrOffenders.slice(0, 4),
+      dpadArrows: document.querySelectorAll('.dpad__btn .dpad__arrow').length,
+      dpadTriangles: [...document.querySelectorAll('.dpad__arrow')].filter((arrow) => {
+        const style = getComputedStyle(arrow);
+        return style.borderLeftWidth === '5px' && style.borderBottomWidth === '7px';
+      }).length,
+      lootIcon: !!document.querySelector('#loot-collect .pixel-icon')
+    };
+  })()`);
+  check("UI text is completely emoji-free", emojiSweep.offenders.length === 0, emojiSweep.offenders.join(" | ") || "0 pictographs");
+  check("Labels and tooltips carry no emoji either", emojiSweep.attrOffenders.length === 0, emojiSweep.attrOffenders.join(" | ") || "0 pictographs");
+  check(
+    "DPad uses CSS triangles instead of arrow glyphs",
+    emojiSweep.dpadArrows === 4 && emojiSweep.dpadTriangles === 4,
+    `${emojiSweep.dpadTriangles}/4 CSS arrows`
+  );
+  check("Loot button uses a pixel-art icon", emojiSweep.lootIcon);
+
   // --- Visual hero select ----------------------------------------------------
   const classSelect = await evaluate(`(() => {
     document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
@@ -367,16 +402,47 @@ try {
 
   const scrollShop = await evaluate(`(() => {
     document.querySelector('.shop-tab[data-shop-tab="scroll"]').click();
+    const cards = [...document.querySelectorAll('#shop-grid .shop-card')];
+    const sprites = cards.map((card) => card.querySelector('.shop-card__preview svg')?.innerHTML.replace(/\\s+/g, ' ').trim() || '');
+    const sizes = cards.map((card) => Math.round(card.querySelector('.shop-card__preview svg')?.getBoundingClientRect().width || 0));
     document.querySelector('[data-item-id="shop_scroll_upgrade"]').click();
     const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
     return {
       tabCards: document.querySelectorAll('.shop-tab').length,
       hasScroll: state.inventory.items.some((item) => item.templateId === 'scroll_upgrade'),
-      gold: state.gold
+      gold: state.gold,
+      scrollCards: cards.length,
+      spriteCards: sprites.filter((sprite) => sprite.includes('<rect')).length,
+      distinctSprites: new Set(sprites.filter(Boolean)).size,
+      maxIcon: Math.max(...sizes, 0),
+      parchment: sprites.filter((sprite) => sprite.includes('#e9e2c8')).length
     };
   })()`);
   check("Shop offers five categories including Schriftrollen", scrollShop.tabCards === 5, String(scrollShop.tabCards));
   check("Bought scrolls land in the inventory bag", scrollShop.hasScroll, `${scrollShop.gold} Gold übrig`);
+  check("Every scroll card carries its own parchment sprite", scrollShop.scrollCards === 6 && scrollShop.parchment === 6, `${scrollShop.parchment}/6 parchment`);
+  check("Scroll sprites are all distinct, not copied flasks", scrollShop.distinctSprites === 6, `${scrollShop.distinctSprites} unique sprites`);
+  check("Scroll sprites fit the shop slot size", scrollShop.maxIcon > 0 && scrollShop.maxIcon <= 52, `${scrollShop.maxIcon}px`);
+
+  const gearShop = await evaluate(`(() => {
+    document.querySelector('.shop-tab[data-shop-tab="equipment"]').click();
+    const cards = document.querySelectorAll('#shop-grid .shop-card');
+    const price = document.querySelector('[data-item-id="gear_steel_sword"]')?.closest('.shop-card')?.querySelector('.shop-card__price')?.textContent.trim() || '';
+    document.querySelector('[data-item-id="gear_steel_sword"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    const sword = state.inventory.items.find((item) => item.type === 'equipment' && item.kind === 'sword');
+    document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
+    const tile = sword ? document.querySelector('.item-tile[data-inv-id="' + sword.id + '"]') : null;
+    return {
+      gearCards: cards.length,
+      price,
+      bought: Boolean(sword),
+      tile: Boolean(tile),
+      sprite: Boolean(tile?.querySelector('svg'))
+    };
+  })()`);
+  check("Equipment tab mixes upgrades, runes and twelve buyable gear cards", gearShop.gearCards >= 20, `${gearShop.gearCards} cards`);
+  check("Bought gear lands in the inventory grid as a pixel tile", gearShop.bought && gearShop.tile && gearShop.sprite, gearShop.price);
 
   // --- Quest + boss ----------------------------------------------------------
   const quest = await evaluate(`(() => {
@@ -441,6 +507,7 @@ try {
       corridors: document.querySelectorAll('.tile--corridor').length,
       fogRooms: document.querySelectorAll('.tile--room.is-fog').length,
       roomSprites: document.querySelectorAll('.tile--room .tile-sprite').length,
+      decor: document.querySelectorAll('.tile__decor').length,
       mapHero: !!document.querySelector('.map-hero .class-sprite'),
       logLines: document.querySelectorAll('.battle-log__line').length,
       logText: document.querySelector('#battle-log').textContent.trim()
@@ -458,6 +525,7 @@ try {
   );
   check("Battle monster sprite is capped at 32px", explore.enemySize > 0 && explore.enemySize <= 32, `${explore.enemySize}px`);
   check("Unexplored rooms stay behind fog of war", explore.fogRooms >= 4 && explore.roomSprites >= 3, `${explore.fogRooms} fogged rooms · ${explore.roomSprites} sprites`);
+  check("Walls and corridors carry pixel decor", explore.decor >= 1, `${explore.decor} decorated tiles`);
   check("The hero is drawn on the tile map", explore.mapHero);
   check("Battle log prints a retro terminal log", explore.logLines >= 1 && explore.logText.includes("erscheint"), explore.logLines + " lines");
 
@@ -791,6 +859,102 @@ try {
     return { level: item?.level || 0, goldBefore, goldAfter: state.gold };
   })()`);
   check("Upgrading gear consumes gold", upgraded.level >= 1 && upgraded.goldAfter < upgraded.goldBefore, `Stufe ${upgraded.level}, ${upgraded.goldBefore} -> ${upgraded.goldAfter}`);
+
+  // --- Boss progression ------------------------------------------------------
+  await evaluate(stateExpression(`(state) => {
+    state.boss = { level: 15, hp: 1, maxHp: 1 };
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const bossProgression = await evaluate(`(() => ({
+    name: document.querySelector('[data-boss="name"]').textContent.trim(),
+    level: document.querySelector('[data-boss="level"]').textContent.trim(),
+    maxHp: Number(document.querySelector('[data-boss="maxhp"]').textContent),
+    sprite: !!document.querySelector('#boss-panel svg')
+  }))()`);
+  check("Raid boss advances to the Perfektionismus-Golem on level 15", bossProgression.name === "Perfektionismus-Golem" && bossProgression.level === "15", bossProgression.name);
+  check("Boss HP and sprite scale with the raid level", bossProgression.maxHp > 900 && bossProgression.sprite, `${bossProgression.maxHp} HP`);
+
+  await evaluate(stateExpression(`(state) => {
+    state.boss = { level: 16, hp: 5, maxHp: 5 };
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const lateBoss = await evaluate(`document.querySelector('[data-boss="name"]').textContent.trim()`);
+  check("Higher raid levels rotate through the boss pool", lateBoss === "Deadline-Dämon", lateBoss);
+
+  // --- Locked gates, keys and event rooms ------------------------------------
+  await evaluate(stateExpression(`(state) => {
+    state.gold = 5000;
+    state.keys = 0;
+    state.mana = 0;
+    state.dungeon = {
+      floor: 7,
+      size: 3,
+      types: ["start", "locked", "fountain", "monster", "treasure", "monster", "monster", "boss", "monster"],
+      pos: 0,
+      visited: [true, false, false, false, false, false, false, false, false],
+      cleared: [true, false, false, false, false, false, false, false, false],
+      hp: 10,
+      enemyHp: 0,
+      burn: 0,
+      frozen: false
+    };
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const gates = await evaluate(`(() => {
+    const toasts = () => [...document.querySelectorAll('#toast-stack .toast')].map((el) => el.textContent.trim()).join(' | ');
+    const index = () => document.querySelector('.map-cell.is-current')?.dataset.mapIndex;
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    document.querySelector('[data-move="right"]').click();
+    const blocked = {
+      index: index(),
+      toasts: toasts(),
+      keys: document.querySelector('[data-dungeon="keys"]').textContent.trim(),
+      note: document.querySelector('#room-actions').textContent.trim()
+    };
+    document.querySelector('.tab-nav__btn[data-tab="shop"]').click();
+    document.querySelector('.shop-tab[data-shop-tab="booster"]').click();
+    document.querySelector('[data-item-id="booster_key"]').click();
+    const keysAfterBuy = document.querySelector('[data-dungeon="keys"]').textContent.trim();
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    document.querySelector('[data-move="right"]').click();
+    const opened = {
+      index: index(),
+      keys: document.querySelector('[data-dungeon="keys"]').textContent.trim(),
+      roomName: document.querySelector('[data-room="name"]').textContent.trim(),
+      toasts: toasts()
+    };
+    const hpBefore = Number(document.querySelector('[data-dungeon="hero-hp"]').textContent);
+    document.querySelector('[data-move="right"]').click();
+    const fountainRoom = document.querySelector('#room-card').dataset.roomType;
+    document.querySelector('[data-room-action="fountain"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      blocked,
+      keysAfterBuy,
+      opened,
+      hpBefore,
+      fountainRoom,
+      hpAfter: Number(document.querySelector('[data-dungeon="hero-hp"]').textContent),
+      mana: Number(document.querySelector('[data-dungeon="mana"]').textContent),
+      maxMana: Number(document.querySelector('[data-dungeon="mana-max"]').textContent),
+      clearedFountain: state.dungeon.cleared[2],
+      note: document.querySelector('#room-actions').textContent.trim(),
+      roomSprite: document.querySelector('[data-room="icon"] svg') ? 'sprite' : 'none'
+    };
+  })()`);
+  check("Locked door blocks the hero without a key", gates.blocked.index === "0" && /Pforte/.test(gates.blocked.toasts), gates.blocked.toasts);
+  check("Key counter starts empty while the gate stays shut", gates.blocked.keys === "0", `keys ${gates.blocked.keys}`);
+  check("Room card names the verschlossene Pforte once opened", gates.opened.roomName === "Verschlossene Pforte", gates.opened.roomName);
+  check("Shop key purchase stocks the key counter", gates.keysAfterBuy === "1" && gates.opened.keys === "0", `${gates.keysAfterBuy} -> ${gates.opened.keys}`);
+  check("Bought key opens the gate and consumes itself", gates.opened.index === "1" && /aufgeschlossen/.test(gates.opened.toasts), gates.opened.toasts);
+  check("Magic fountain heals, refills mana and dries up", gates.fountainRoom === "fountain" && gates.hpAfter > gates.hpBefore && gates.mana === gates.maxMana && gates.clearedFountain && gates.note.includes("versiegt"), `${gates.hpBefore} -> ${gates.hpAfter} HP · ${gates.mana}/${gates.maxMana} MP`);
+  check("Room card draws an event-room pixel sprite", gates.roomSprite === "sprite");
 
   // --- Final layout + errors -------------------------------------------------
   const layout = await evaluate(`(() => {

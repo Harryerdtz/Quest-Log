@@ -37,10 +37,11 @@ export function createBattle({
   hp = 1,
   mana = 0,
   rune = null,
+  variant = 0,
   rng = Math.random,
 } = {}) {
   const cls = getClass(heroClass);
-  const enemy = createRoomEnemy(floor, roomType, mode);
+  const enemy = createRoomEnemy(floor, roomType, mode, { variant });
   const enemyX = 5;
   const layout = obstacleLayout(Math.floor(floor) + (roomType === "boss" ? 1 : 0));
   const obstacles = layout.filter(([x, y]) => !(y === 2 && x >= 4)).map(([x, y]) => key(x, y));
@@ -49,6 +50,7 @@ export function createBattle({
     floor,
     roomType,
     mode,
+    variant,
     heroClass,
     cls: cls?.id || "warrior",
     range: cls?.range || 1,
@@ -71,6 +73,7 @@ export function createBattle({
       boss: enemy.boss,
       range: enemy.boss ? 3 : 2,
       sprite: enemy.sprite,
+      special: enemy.special || null,
     },
     obstacles,
     hp,
@@ -147,12 +150,12 @@ function awardEnemyDefeat(battle, events) {
   pushLog(battle, `${battle.enemy.name} besiegt!`);
 }
 
-function enemyAttackHero(battle, events) {
+function enemyAttackHero(battle, events, multiplier = 1) {
   const enemy = battle.enemy;
   const heroDodged = rollCrit(battle, battle.heroDodge || 0.02);
   const blocked = rollCrit(battle, battle.heroBlock || 0);
   const crit = rollCrit(battle, enemy.crit);
-  let damage = Math.max(1, Math.round(enemy.attack - (battle.heroDefense || 0) - (battle.buffs.defense || 0)));
+  let damage = Math.max(1, Math.round((enemy.attack - (battle.heroDefense || 0) - (battle.buffs.defense || 0)) * multiplier));
   if (blocked) damage = Math.round(damage * 0.5);
   if (crit) damage = Math.round(damage * 1.5);
   if (heroDodged) damage = 0;
@@ -160,7 +163,7 @@ function enemyAttackHero(battle, events) {
   if (damage <= 0) {
     events.push(heroDodged ? "Du weichst aus!" : "Block! Kein Schaden.");
     pushLog(battle, heroDodged ? "Ausgewichen!" : "Block!");
-    return;
+    return 0;
   }
 
   battle.hp = Math.max(0, battle.hp - damage);
@@ -172,6 +175,7 @@ function enemyAttackHero(battle, events) {
     events.push("Niedergeschlagen!");
     pushLog(battle, "Du gehst zu Boden.");
   }
+  return damage;
 }
 
 function enemyStep(battle) {
@@ -213,6 +217,14 @@ export function enemyTurn(battle, events = []) {
     return events;
   }
 
+  const special = battle.enemy.special;
+  if (special && dist <= (special.range || enemyAttackRange(battle)) && rollCrit(battle, special.chance || 0.25)) {
+    runBossSpecial(battle, special, events);
+    if (battle.status !== "ongoing") return events;
+    startHeroTurn(battle);
+    return events;
+  }
+
   if (dist <= enemyAttackRange(battle)) {
     enemyAttackHero(battle, events);
     if (battle.status !== "ongoing") return events;
@@ -228,6 +240,39 @@ export function enemyTurn(battle, events = []) {
 
   startHeroTurn(battle);
   return events;
+}
+
+function runBossSpecial(battle, special, events) {
+  const name = special.name || "Spezialangriff";
+  const damage = enemyAttackHero(battle, events, special.multiplier || 1.4);
+  pushLog(battle, `${battle.enemy.name} setzt ${name} ein!`);
+  events.push(`${name}!`);
+  if (battle.status !== "ongoing") return;
+
+  if (special.drain && damage > 0) {
+    const heal = Math.max(1, Math.round(damage * 0.5));
+    battle.enemy.hp = Math.min(battle.enemy.maxHp, battle.enemy.hp + heal);
+    events.push(`${battle.enemy.name} saugt ${heal} HP.`);
+    pushLog(battle, `${battle.enemy.name} saugt ${heal} HP.`);
+  }
+  if (special.sunder) {
+    battle.heroDefense = Math.max(0, (battle.heroDefense || 0) - special.sunder);
+    events.push(`Rüstung beschädigt: −${special.sunder} DEF.`);
+    pushLog(battle, `Deine Rüstung verliert ${special.sunder} DEF.`);
+  }
+  if (special.manaburn) {
+    const burned = Math.min(battle.mana, special.manaburn);
+    battle.mana = Math.max(0, battle.mana - burned);
+    events.push(`${burned} Mana verbrannt.`);
+    pushLog(battle, `${burned} Mana verbrannt.`);
+  }
+  if (special.secondHit) {
+    const extra = enemyAttackHero(battle, events, special.secondHit);
+    if (extra > 0) {
+      events.push(`Zweiter Treffer −${extra} HP.`);
+      pushLog(battle, `Zweiter Treffer für ${extra}.`);
+    }
+  }
 }
 
 function enemyAttackRange(battle) {
@@ -255,7 +300,7 @@ export function heroAttack(battle, { ranged = false, stats = {}, rune = null } =
 
   const enemy = battle.enemy;
   const multiplier = elementMultiplier(rune, { element: enemy.element, weakness: enemy.weakness });
-  const critChance = (stats.crit || 0.05) + (rune === "storm" ? 0.15 : 0);
+  const critChance = (stats.crit || 0.05) + (battle.buffs.crit || 0) + (rune === "storm" ? 0.15 : 0);
   const crit = rollCrit(battle, critChance);
   const dodged = rollCrit(battle, enemy.dodge);
   let damage = 0;
@@ -374,6 +419,38 @@ export function useConsumable(battle, item, { stats = {} } = {}) {
     const damage = Math.round(((stats.attack || 10) + (stats.spellPower || 0) * 30) * (item.power || 2));
     battle.enemy.hp = Math.max(0, battle.enemy.hp - damage);
     events.push(`${item.name}: ${damage} Schaden`);
+  } else if (effect === "focus") {
+    battle.buffs.crit = Math.round(((battle.buffs.crit || 0) + (item.amount || 0.15)) * 1000) / 1000;
+    events.push(`${item.name}: +${Math.round((item.amount || 0.15) * 100)}% Krit`);
+  } else if (effect === "teleport") {
+    const spots = [];
+    for (let y = 0; y < battle.h; y += 1) {
+      for (let x = 0; x < battle.w; x += 1) {
+        if (canStep(battle, x, y)) spots.push({ x, y });
+      }
+    }
+    spots.sort(
+      (a, b) =>
+        Math.max(Math.abs(b.x - battle.enemy.x), Math.abs(b.y - battle.enemy.y)) -
+        Math.max(Math.abs(a.x - battle.enemy.x), Math.abs(a.y - battle.enemy.y))
+    );
+    const target = spots[0];
+    if (target) {
+      battle.hero.x = target.x;
+      battle.hero.y = target.y;
+      events.push(`${item.name}: teleportiert auf Distanz ${battleDistance(battle)}`);
+    } else {
+      events.push(`${item.name}: kein freies Feld`);
+    }
+  } else if (effect === "freeze") {
+    const damage = Math.round(((stats.attack || 10) + (stats.spellPower || 0) * 30) * (item.power || 1.6));
+    battle.enemy.hp = Math.max(0, battle.enemy.hp - damage);
+    battle.enemyStunned = true;
+    events.push(`${item.name}: ${damage} Schaden · Gegner eingefroren`);
+  } else if (effect === "identify") {
+    battle.identified = true;
+    battle.buffs.crit = Math.round(((battle.buffs.crit || 0) + 0.1) * 1000) / 1000;
+    events.push(`${item.name}: Schwäche ${battle.enemy.weakness} enthüllt · +10% Krit`);
   } else if (effect === "upgrade") {
     return { ok: false, reason: "passive", events };
   }
