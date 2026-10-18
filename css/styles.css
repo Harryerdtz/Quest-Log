@@ -490,7 +490,8 @@ main {
   min-width: 0;
 }
 
-.field label {
+.field label,
+.field__label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
@@ -498,8 +499,7 @@ main {
   color: var(--muted);
 }
 
-input[type="text"],
-select {
+input[type="text"] {
   width: 100%;
   min-height: 46px;
   padding: 10px 12px;
@@ -522,27 +522,11 @@ input[type="text"]::placeholder {
   opacity: 1;
 }
 
-select {
-  padding-right: 36px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' shape-rendering='crispEdges'><path d='M0 0h12v2H0zM1 2h10v2H1zM2 4h8v2H2zM3 6h6v2H3z' fill='%23ffcd38'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px 8px;
-}
-
-select option {
-  color: var(--text);
-  background: var(--bg-deep);
-}
-
-input[type="text"]:hover,
-select:hover {
+input[type="text"]:hover {
   border-color: #4a5165;
 }
 
-input[type="text"]:focus,
-select:focus {
+input[type="text"]:focus {
   outline: none;
   border-color: var(--gold);
   box-shadow:
@@ -940,7 +924,7 @@ select:focus {
 .levelup-banner {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 130;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -1224,11 +1208,18 @@ select:focus {
 
 @media (min-width: 700px) {
   .quest-form {
-    grid-template-columns: minmax(0, 1fr) 140px 158px auto;
+    grid-template-columns: minmax(0, 1fr) 180px auto;
     align-items: end;
   }
 
+  .difficulty-field {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
   .quest-form__submit {
+    grid-column: 3;
+    grid-row: 1;
     width: auto;
     white-space: nowrap;
   }
@@ -1277,5 +1268,1437 @@ select:focus {
 
   .xp-bar__fill {
     transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Wallet, boosters, boss raid & idle loot
+   ========================================================================== */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) var(--bg-deep);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border: 3px solid var(--bg-deep);
+}
+
+.wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gold);
+  background: var(--bg-deep);
+  border: 2px solid var(--gold);
+  border-radius: 0;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition:
+    transform 70ms var(--ease-steps),
+    background-color 120ms linear;
+}
+
+.wallet:hover {
+  background: rgba(255, 205, 56, 0.12);
+}
+
+.wallet:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.wallet:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+.wallet__amount {
+  font-family: var(--font-display);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.wallet__label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wallet .coin-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.wallet.is-gaining .wallet__amount {
+  animation: coin-pop 520ms steps(3, end) 1;
+}
+
+.wallet--static {
+  cursor: default;
+}
+
+.wallet--static:active {
+  transform: none;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.booster-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.booster-chip {
+  padding: 3px 6px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--gold);
+  background: rgba(255, 205, 56, 0.08);
+  border: 2px solid var(--gold);
+}
+
+.booster-chip--gold {
+  color: var(--green);
+  background: rgba(78, 239, 145, 0.08);
+  border-color: var(--green);
+}
+
+.game-hud {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 2.5vw, 22px);
+  margin-top: clamp(16px, 3vw, 24px);
+}
+
+.panel[data-panel="boss"] {
+  --panel-accent: var(--magenta);
+}
+
+.panel[data-panel="loot"] {
+  --panel-accent: var(--green);
+}
+
+.boss-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.boss-level {
+  margin-left: auto;
+  padding: 4px 7px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  color: var(--magenta);
+  background: rgba(233, 69, 96, 0.08);
+  border: 2px solid var(--magenta);
+  white-space: nowrap;
+}
+
+.boss-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.boss-sprite-wrap {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 76px;
+  height: 76px;
+  background:
+    radial-gradient(circle, rgba(233, 69, 96, 0.2), transparent 68%),
+    var(--bg-deep);
+  border: 3px solid var(--ink);
+  box-shadow: inset 0 0 0 2px rgba(233, 69, 96, 0.4);
+}
+
+.boss-sprite {
+  width: 58px;
+  height: 58px;
+  animation: boss-idle 2.6s steps(2, end) infinite;
+}
+
+.boss-info {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.boss-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(9px, 2.3vw, 11px);
+  line-height: 1.7;
+  color: var(--text);
+  text-shadow: 2px 2px 0 var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.boss-hp {
+  position: relative;
+  height: 26px;
+  overflow: hidden;
+  background: var(--bg-deep);
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 2px #3a2430;
+}
+
+.boss-hp__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 48%),
+    repeating-linear-gradient(90deg, var(--magenta) 0 10px, #ff6b83 10px 20px);
+  box-shadow:
+    0 0 16px rgba(233, 69, 96, 0.5),
+    inset 0 -4px 0 rgba(149, 26, 51, 0.7);
+  transition: width 320ms steps(8, end);
+}
+
+.boss-hp__label {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: #fff;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.boss-panel.is-critical .boss-hp__fill {
+  animation: boss-critical 700ms steps(2, end) infinite;
+}
+
+.boss-hint {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+
+.boss-damage {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  z-index: 3;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--gold);
+  text-shadow:
+    2px 2px 0 var(--ink),
+    0 0 14px rgba(255, 205, 56, 0.55);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.boss-panel.is-hit .boss-damage {
+  animation: damage-float 800ms steps(6, end) both;
+}
+
+.boss-panel.is-hit .boss-sprite-wrap {
+  animation: boss-hit 380ms steps(2, end) both;
+}
+
+.boss-panel.is-defeated {
+  animation: boss-defeat 900ms steps(3, end) both;
+}
+
+.loot-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.loot-chest {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 82px;
+  height: 66px;
+}
+
+.chest-sprite {
+  width: 74px;
+  height: 62px;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.35));
+}
+
+.chest-lid {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: transform 160ms steps(3, end);
+}
+
+.loot-panel.is-ready .chest-sprite {
+  animation: chest-bob 1.4s steps(3, end) infinite;
+}
+
+.loot-panel.is-opening .chest-lid {
+  transform: translateY(-5px) rotate(-5deg);
+}
+
+.loot-chest__spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--ink);
+  opacity: 0;
+}
+
+.loot-chest__spark--a {
+  top: 8px;
+  left: 6px;
+}
+
+.loot-chest__spark--b {
+  top: 2px;
+  right: 12px;
+  background: var(--green);
+}
+
+.loot-panel.is-opening .loot-chest__spark--a {
+  animation: spark-pop 600ms steps(3, end) both;
+}
+
+.loot-panel.is-opening .loot-chest__spark--b {
+  animation: spark-pop 600ms steps(3, end) 100ms both;
+}
+
+.loot-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.loot-pending {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--gold);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.loot-pending .coin-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.loot-pending__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-shadow: none;
+}
+
+.loot-timer {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+
+.loot-total {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.loot-total span {
+  font-family: var(--font-display);
+  font-size: 9px;
+  color: var(--gold);
+}
+
+.loot-btn {
+  width: 100%;
+}
+
+.loot-btn[disabled] {
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+/* ==========================================================================
+   Custom pixel dropdown (replaces native select)
+   ========================================================================== */
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown__trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text);
+  text-align: left;
+  background: var(--bg-deep);
+  border: 3px solid var(--line);
+  border-radius: 0;
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.42);
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease-steps),
+    box-shadow 140ms var(--ease-steps);
+}
+
+.dropdown__trigger:hover {
+  border-color: #4a5165;
+}
+
+.dropdown__trigger[aria-expanded="true"],
+.dropdown__trigger:focus-visible {
+  border-color: var(--gold);
+  box-shadow:
+    inset 0 4px 0 rgba(0, 0, 0, 0.42),
+    0 0 0 2px rgba(255, 205, 56, 0.28);
+  outline: none;
+}
+
+.dropdown__icon {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--gold);
+}
+
+.dropdown__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown__chevron {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 8px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' shape-rendering='crispEdges'><path d='M0 0h12v2H0zM1 2h10v2H1zM2 4h8v2H2zM3 6h6v2H3z' fill='%23ffcd38'/></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+  transition: transform 120ms steps(2, end);
+}
+
+.dropdown__trigger[aria-expanded="true"] .dropdown__chevron {
+  transform: scaleY(-1);
+}
+
+.dropdown__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #101216;
+  border: 3px solid var(--gold);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 0 0 4px var(--line),
+    0 8px 0 2px rgba(0, 0, 0, 0.55);
+  animation: dropdown-in 120ms steps(2, end) both;
+}
+
+.dropdown__menu[hidden] {
+  display: none;
+}
+
+.dropdown__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: 14px;
+  color: var(--text);
+  border: 2px solid transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.dropdown__option + .dropdown__option {
+  margin-top: 2px;
+}
+
+.dropdown__option:hover,
+.dropdown__option:focus-visible {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--ink);
+}
+
+.dropdown__option:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -4px;
+}
+
+.dropdown__option.is-selected {
+  color: var(--gold);
+}
+
+.dropdown__option.is-selected:hover,
+.dropdown__option.is-selected:focus-visible {
+  color: var(--ink);
+}
+
+.dropdown__option-icon {
+  width: 12px;
+  color: inherit;
+}
+
+.dropdown__option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.dropdown__check {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  opacity: 0;
+}
+
+.dropdown__option.is-selected .dropdown__check {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Auto-difficulty slider + XP preview
+   ========================================================================== */
+
+.difficulty-field {
+  gap: 10px;
+}
+
+.difficulty-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.difficulty-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-toggle {
+  padding: 5px 7px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  background: var(--bg-deep);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.auto-toggle.is-active {
+  color: var(--ink);
+  background: var(--green);
+  border-color: var(--ink);
+  box-shadow: 0 0 12px rgba(78, 239, 145, 0.35);
+}
+
+.auto-toggle:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.xp-preview {
+  padding: 5px 8px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--gold);
+  white-space: nowrap;
+  background: rgba(255, 205, 56, 0.08);
+  border: 2px solid var(--gold);
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.xp-preview.is-boss {
+  color: var(--magenta);
+  background: rgba(233, 69, 96, 0.1);
+  border-color: var(--magenta);
+}
+
+.pixel-range-wrap {
+  position: relative;
+  height: 34px;
+}
+
+.pixel-range__track {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  left: 0;
+  height: 14px;
+  overflow: hidden;
+  background: var(--bg-deep);
+  border: 3px solid var(--ink);
+  box-shadow: inset 0 0 0 2px #2f3546;
+}
+
+.pixel-range__fill {
+  width: 33.333%;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--gold) 0 8px, #ffdc6b 8px 16px);
+  box-shadow:
+    0 0 12px var(--gold-glow),
+    inset 0 -3px 0 rgba(169, 122, 0, 0.5);
+  transition: width 120ms steps(4, end);
+}
+
+[data-difficulty="easy"] .pixel-range__fill {
+  background: repeating-linear-gradient(90deg, var(--green) 0 8px, #83ffba 8px 16px);
+  box-shadow:
+    0 0 12px rgba(78, 239, 145, 0.35),
+    inset 0 -3px 0 rgba(20, 128, 62, 0.5);
+}
+
+[data-difficulty="boss"] .pixel-range__fill {
+  background: repeating-linear-gradient(90deg, var(--magenta) 0 8px, #ff6b83 8px 16px);
+  box-shadow:
+    0 0 12px rgba(233, 69, 96, 0.4),
+    inset 0 -3px 0 rgba(149, 26, 51, 0.6);
+}
+
+.pixel-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.pixel-range::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
+.pixel-range::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+  margin-top: 4px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  box-shadow:
+    0 0 0 2px var(--gold-deep),
+    0 0 14px var(--gold-glow);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.pixel-range::-moz-range-track {
+  height: 100%;
+  background: transparent;
+  border: 0;
+}
+
+.pixel-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 0 0 2px var(--gold-deep);
+}
+
+.pixel-range:focus {
+  outline: none;
+}
+
+.pixel-range:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 2px var(--green),
+    0 0 0 5px var(--ink);
+}
+
+[data-difficulty="boss"] .pixel-range::-webkit-slider-thumb {
+  background: var(--magenta);
+  box-shadow:
+    0 0 0 2px var(--magenta-deep),
+    0 0 14px rgba(233, 69, 96, 0.45);
+}
+
+[data-difficulty="boss"] .pixel-range::-moz-range-thumb {
+  background: var(--magenta);
+  box-shadow: 0 0 0 2px var(--magenta-deep);
+}
+
+[data-difficulty="easy"] .pixel-range::-webkit-slider-thumb {
+  background: var(--green);
+  box-shadow:
+    0 0 0 2px var(--green-deep),
+    0 0 14px rgba(78, 239, 145, 0.4);
+}
+
+.difficulty-ticks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.difficulty-tick {
+  display: grid;
+  gap: 2px;
+  padding: 7px 4px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--bg-deep);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+  transition:
+    transform 70ms var(--ease-steps),
+    border-color 120ms linear,
+    color 120ms linear,
+    background-color 120ms linear;
+}
+
+.difficulty-tick b {
+  font-family: var(--font-display);
+  font-size: 7px;
+  color: inherit;
+}
+
+.difficulty-tick.is-active {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--ink);
+  box-shadow: 0 3px 0 var(--gold-deep);
+  transform: translateY(-1px);
+}
+
+.difficulty-tick[data-difficulty="easy"].is-active {
+  background: var(--green);
+  box-shadow: 0 3px 0 var(--green-deep);
+}
+
+.difficulty-tick[data-difficulty="boss"].is-active {
+  color: #1a0710;
+  background: var(--magenta);
+  box-shadow: 0 3px 0 var(--magenta-deep);
+}
+
+.difficulty-tick:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.difficulty-tick:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+.difficulty-hint {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+
+/* ==========================================================================
+   Pixel shop modal
+   ========================================================================== */
+
+body.is-modal-open {
+  overflow: hidden;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 3vw, 28px);
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 7, 10, 0.88);
+}
+
+.modal__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(980px, 100%);
+  max-height: min(92vh, 900px);
+  max-height: min(92dvh, 900px);
+  overflow: hidden;
+  background: #101216;
+  border: 4px solid var(--gold);
+  box-shadow:
+    inset 0 0 0 4px var(--ink),
+    0 0 0 4px var(--gold),
+    0 14px 0 rgba(0, 0, 0, 0.55),
+    0 0 70px rgba(255, 205, 56, 0.16);
+}
+
+.modal.is-open .modal__panel {
+  animation: modal-in 200ms steps(3, end) both;
+}
+
+.modal__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  background: linear-gradient(180deg, #262b38, #1a1d27);
+  border-bottom: 3px solid var(--ink);
+}
+
+.modal__eyebrow {
+  margin: 0 0 6px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.modal__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(14px, 3vw, 20px);
+  line-height: 1.5;
+  color: var(--gold);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.modal__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal__close {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--panel-raised);
+  border: 3px solid var(--line);
+  border-radius: 0;
+  box-shadow: 0 4px 0 var(--ink);
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  color: var(--magenta);
+  border-color: var(--magenta);
+}
+
+.modal__close:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+.modal__close:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+.shop-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px 12px;
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+.shop-tab {
+  padding: 9px 12px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg-deep);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.shop-tab.is-active {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--ink);
+  box-shadow: 0 3px 0 var(--gold-deep);
+}
+
+.shop-tab:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+.booster-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 18px 0;
+}
+
+.stock-chip {
+  padding: 4px 7px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--green);
+  background: rgba(78, 239, 145, 0.08);
+  border: 2px solid var(--green);
+}
+
+.stock-chip--gold {
+  color: var(--gold);
+  background: rgba(255, 205, 56, 0.08);
+  border-color: var(--gold);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.shop-card {
+  --card-accent: var(--gold);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px;
+  background: var(--panel-alt);
+  border: 2px solid var(--ink);
+  border-top: 5px solid var(--card-accent);
+  box-shadow:
+    0 0 0 2px #313747,
+    0 5px 0 rgba(0, 0, 0, 0.35);
+}
+
+.shop-card.is-equipped {
+  box-shadow:
+    0 0 0 2px var(--green),
+    0 5px 0 rgba(0, 0, 0, 0.35),
+    0 0 18px rgba(78, 239, 145, 0.14);
+}
+
+.shop-card__preview {
+  display: grid;
+  place-items: center;
+  height: 92px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%),
+    var(--bg-deep);
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 2px #252a36;
+}
+
+.shop-card__preview .avatar-sprite {
+  width: 64px;
+  height: 64px;
+}
+
+.shop-card__preview .shop-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.shop-card__preview .coin-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.shop-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shop-card__type {
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--card-accent);
+}
+
+.shop-card__stock {
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+
+.shop-card__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.shop-card__desc {
+  flex: 1;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.shop-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.shop-card__price {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  color: var(--gold);
+}
+
+.shop-card__price .coin-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.shop-card__price.is-owned {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.btn--sm {
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 7px;
+  box-shadow:
+    inset -2px -2px 0 rgba(0, 0, 0, 0.25),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.28),
+    0 3px 0 var(--btn-edge),
+    0 3px 0 2px var(--ink);
+}
+
+.btn--sm:active {
+  transform: translateY(3px);
+}
+
+.btn--equip {
+  --btn-face: var(--green);
+  --btn-edge: var(--green-deep);
+}
+
+.btn--buy {
+  --btn-face: var(--gold);
+  --btn-edge: var(--gold-deep);
+}
+
+.btn[disabled] {
+  opacity: 0.72;
+}
+
+.shop-foot {
+  padding: 0 18px 16px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.08);
+}
+
+.shop-foot p {
+  margin: 12px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+
+/* ==========================================================================
+   Pixel toasts
+   ========================================================================== */
+
+.toast-stack {
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 140;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(430px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: var(--text);
+  background: #101216;
+  border: 3px solid var(--gold);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 6px 0 rgba(0, 0, 0, 0.45);
+  animation: toast-in 200ms steps(3, end) both;
+}
+
+.toast::before {
+  content: "◆";
+  flex: 0 0 auto;
+  color: var(--gold);
+}
+
+.toast--green {
+  border-color: var(--green);
+}
+
+.toast--green::before {
+  color: var(--green);
+}
+
+.toast--magenta {
+  border-color: var(--magenta);
+}
+
+.toast--magenta::before {
+  color: var(--magenta);
+}
+
+.toast.is-leaving {
+  animation: toast-out 180ms steps(2, end) both;
+}
+
+/* Remove remaining native control chrome on every interactive pixel element */
+.btn,
+.wallet,
+.dropdown__trigger,
+.auto-toggle,
+.modal__close,
+.shop-tab,
+.difficulty-tick,
+.quest-check,
+.quest-delete,
+.loot-btn {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* ==========================================================================
+   New keyframes
+   ========================================================================== */
+
+@keyframes coin-pop {
+  0%,
+  100% {
+    transform: translateY(0);
+    color: var(--gold);
+  }
+  50% {
+    transform: translateY(-3px);
+    color: var(--green);
+  }
+}
+
+@keyframes boss-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes boss-critical {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes boss-hit {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes boss-defeat {
+  0%,
+  100% {
+    filter: none;
+  }
+  20% {
+    filter: brightness(2) saturate(0.4);
+  }
+  40% {
+    filter: brightness(0.6);
+  }
+  60% {
+    filter: brightness(2);
+  }
+  80% {
+    filter: brightness(0.8);
+  }
+}
+
+@keyframes damage-float {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(1);
+  }
+}
+
+@keyframes chest-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes spark-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.8);
+  }
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ==========================================================================
+   New responsive rules
+   ========================================================================== */
+
+@media (min-width: 560px) {
+  .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 860px) {
+  .game-hud {
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .shop-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .wallet__label {
+    display: none;
+  }
+
+  .boss-sprite-wrap {
+    width: 62px;
+    height: 62px;
+  }
+
+  .boss-sprite {
+    width: 48px;
+    height: 48px;
+  }
+
+  .loot-chest {
+    width: 68px;
+    height: 58px;
+  }
+
+  .chest-sprite {
+    width: 62px;
+    height: 52px;
+  }
+
+  .loot-pending {
+    font-size: 11px;
+  }
+
+  .modal {
+    padding: 0;
+  }
+
+  .modal__panel {
+    width: 100%;
+    max-height: 100dvh;
+    min-height: 100dvh;
+    border-width: 3px;
+  }
+
+  .modal__head {
+    padding: 14px;
+  }
+
+  .shop-tabs {
+    padding: 12px 14px 10px;
+  }
+
+  .shop-grid {
+    padding: 14px;
+  }
+
+  .shop-foot {
+    padding: 0 14px 14px;
+  }
+}
+
+@media (max-width: 359px) {
+  .difficulty-ticks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .boss-body {
+    gap: 10px;
+  }
+
+  .loot-body {
+    gap: 10px;
   }
 }

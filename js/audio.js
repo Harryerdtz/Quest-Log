@@ -29,3 +29,7 @@ export function playDelete() {
 export function playError() {
   tone(180, 0.15, "square", 0.1);
 }
+export function playCoin() {
+  tone(1047, 0.06, "square", 0.1);
+  setTimeout(() => tone(1319, 0.1, "square", 0.09), 70);
+}

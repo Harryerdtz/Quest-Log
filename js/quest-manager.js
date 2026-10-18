@@ -21,10 +21,11 @@ export function xpForLevel(level) {
   return level * 100;
 }
 
-export function applyCompletion(state, quest) {
+export function applyCompletion(state, quest, xpMultiplier = 1) {
   let xpGain = xpValue(quest.difficulty);
   // streak multiplier: +20% if streak >= 3
   if (state.streak >= 3) xpGain = Math.round(xpGain * 1.2);
+  if (xpMultiplier > 1) xpGain = Math.round(xpGain * xpMultiplier);
   state.xp += xpGain;
   // level up loop
   while (state.xp >= xpForLevel(state.level)) {
