@@ -545,6 +545,25 @@ try {
   check("Elite bonus is marked as claimed", eliteFight.bonusDate === eliteFight.today && eliteFight.claimed, eliteFight.daily);
   check("Deepest floor is tracked", eliteFight.deepest === 6, String(eliteFight.deepest));
 
+  const lootGrid = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    const tiles = [...document.querySelectorAll('#inventory-bag .item-tile[data-inv-id]')];
+    const result = {
+      items: state.inventory.items.length,
+      tiles: tiles.length,
+      sprites: tiles.filter((tile) => tile.querySelector('svg')).length,
+      labels: tiles.map((tile) => tile.getAttribute('aria-label') || '')
+    };
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    return result;
+  })()`);
+  check(
+    "Monster loot lands in the inventory grid as sprites",
+    lootGrid.items >= 1 && lootGrid.tiles >= 1 && lootGrid.sprites === lootGrid.tiles,
+    `${lootGrid.items} items · ${lootGrid.tiles} tiles`
+  );
+
   // A second elite on the same day must not grant the daily bonus again.
   const goldAfterFirstElite = eliteFight.gold;
   await evaluate(stateExpression(`(state) => {
