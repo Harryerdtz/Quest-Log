@@ -327,7 +327,10 @@
           <article class="panel dungeon-panel" data-panel="dungeon" id="dungeon-panel">
             <header class="panel__head">
               <h2 class="panel__title">Dungeon Crawler</h2>
-              <span class="dungeon-floor">Etage <span data-dungeon="floor">1</span></span>
+              <div class="dungeon-head__meta">
+                <span class="elite-daily" data-dungeon="elite-daily">Tagesbonus: +150 G</span>
+                <span class="dungeon-floor">Etage <span data-dungeon="floor">1</span></span>
+              </div>
             </header>
 
             <div class="dungeon-arena">
@@ -352,7 +355,7 @@
               <div class="dungeon-vs" aria-hidden="true">VS</div>
 
               <div class="fighter fighter--enemy">
-                <div class="fighter__sprite">
+                <div class="fighter__sprite" id="dungeon-enemy-sprite" data-element="fire">
                   <svg class="enemy-sprite" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
                     <rect x="6" y="3" width="4" height="1" fill="#4eef91"/>
                     <rect x="4" y="4" width="8" height="2" fill="#4eef91"/>
@@ -395,6 +398,7 @@
             <div class="dungeon-actions">
               <button class="btn btn--primary" id="dungeon-attack" type="button">Vorstoß</button>
               <button class="btn btn--ghost" type="button" data-tab="shop" data-shop-category="equipment">Upgrades</button>
+              <button class="btn btn--ghost" id="dungeon-reset" type="button">Run neu starten</button>
               <span class="dungeon-reward">Belohnung <span class="coin-icon-wrap"><svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="0" width="4" height="1" fill="#ffcd38"/><rect x="1" y="1" width="6" height="6" fill="#ffcd38"/><rect x="2" y="7" width="4" height="1" fill="#ffcd38"/><rect x="2" y="1" width="4" height="1" fill="#ffe37a"/><rect x="5" y="2" width="2" height="4" fill="#b8860b"/><rect x="2" y="6" width="4" height="1" fill="#b8860b"/></svg></span> <span data-dungeon="reward">15</span></span>
             </div>
             <p class="dungeon-hint" data-dungeon="status">Besiege Gegner, steige tiefer und kaufe Upgrades im Pixel Bazaar.</p>

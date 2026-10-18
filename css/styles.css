@@ -4042,3 +4042,78 @@ button.is-pressed {
     animation: none;
   }
 }
+
+/* --- Daily elite bonus, elemental sprites and run reset ----------------- */
+
+.dungeon-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.elite-daily {
+  padding: 3px 6px;
+  font-family: var(--font-display);
+  font-size: 6px;
+  line-height: 1.5;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: rgba(255, 205, 56, 0.08);
+  border: 2px solid rgba(255, 205, 56, 0.6);
+  white-space: nowrap;
+}
+
+.elite-daily.is-claimed {
+  color: var(--muted);
+  background: rgba(139, 144, 166, 0.08);
+  border-color: var(--line);
+}
+
+.enemy-crown {
+  animation: crown-glint 1400ms steps(2, end) infinite;
+}
+
+@keyframes crown-glint {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+#dungeon-enemy-sprite,
+.fighter__sprite svg.enemy-sprite {
+  transform-origin: center bottom;
+}
+
+#dungeon-reset.is-armed {
+  --btn-text: var(--magenta);
+  border-color: var(--magenta);
+  animation: boss-critical 700ms steps(2, end) infinite;
+}
+
+@media (max-width: 700px) {
+  .dungeon-head__meta {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .elite-daily {
+    font-size: 6px;
+  }
+
+  .dungeon-actions .btn {
+    flex: 1 1 45%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enemy-crown {
+    animation: none;
+  }
+}

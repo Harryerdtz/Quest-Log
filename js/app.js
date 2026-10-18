@@ -23,6 +23,8 @@ const DEFAULT_STATE = {
   lastLootAt: null,
   upgrades: { weapon: 0, armor: 0, strength: 0, vitality: 0 },
   dungeon: null,
+  deepestFloor: 1,
+  lastEliteBonusDate: null,
   rune: "fire",
   totalLoot: 0,
   monstersSlain: 0,
@@ -86,6 +88,12 @@ function normalizeState(raw) {
   const stats = DUNGEON.heroStats(clean.upgrades);
   const floor = Number.isFinite(source.dungeon?.floor) ? Math.max(1, Math.floor(source.dungeon.floor)) : 1;
   const enemy = DUNGEON.createEnemy(floor, mode);
+  clean.deepestFloor = Math.max(
+    floor,
+    Number.isFinite(source.deepestFloor) ? Math.floor(source.deepestFloor) : 1
+  );
+  clean.lastEliteBonusDate =
+    typeof source.lastEliteBonusDate === "string" ? source.lastEliteBonusDate : null;
   clean.dungeon = {
     floor,
     hp: Number.isFinite(source.dungeon?.hp)
@@ -122,6 +130,8 @@ let difficultyControl = null;
 let lootTicker = null;
 let resetArmed = false;
 let resetTimer = null;
+let dungeonResetArmed = false;
+let dungeonResetTimer = null;
 
 /* -------------------------------------------------------------------------
    Utilities + navigation
@@ -537,6 +547,17 @@ function renderBoss() {
   if (panel) panel.classList.toggle("is-critical", boss.hp / boss.maxHp <= 0.3);
 }
 
+function syncEliteDaily() {
+  const mode = state.settings.difficulty;
+  const claimed = state.lastEliteBonusDate === new Date().toDateString();
+  $$('[data-dungeon="elite-daily"]').forEach((el) => {
+    el.textContent = claimed
+      ? "Tagesbonus heute kassiert"
+      : `Tagesbonus: +${DUNGEON.eliteDailyBonus(mode)} G`;
+    el.classList.toggle("is-claimed", claimed);
+  });
+}
+
 function updateLoot(now = Date.now()) {
   const mode = state.settings.difficulty;
   const pending = RAID.lootPending(state, now, mode);
@@ -557,6 +578,7 @@ function updateLoot(now = Date.now()) {
   }
   const panel = $("#loot-panel");
   if (panel) panel.classList.toggle("is-ready", pending > 0);
+  syncEliteDaily();
 }
 
 function renderDungeon() {
@@ -569,6 +591,17 @@ function renderDungeon() {
   const heroElement = DUNGEON.ELEMENTS[state.rune] || DUNGEON.ELEMENTS.fire;
   const enemyElement = DUNGEON.ELEMENTS[enemy.element];
   const weakness = DUNGEON.ELEMENTS[enemy.weakness];
+  const spriteWrap = $("#dungeon-enemy-sprite");
+  if (
+    spriteWrap &&
+    (spriteWrap.dataset.element !== enemy.element || spriteWrap.dataset.elite !== String(enemy.elite))
+  ) {
+    spriteWrap.innerHTML = DUNGEON.enemySprite(enemy.element, enemy.elite);
+    spriteWrap.dataset.element = enemy.element;
+    spriteWrap.dataset.elite = String(enemy.elite);
+  }
+
+  syncEliteDaily();
 
   $$('[data-dungeon="floor"]').forEach((el) => {
     el.textContent = String(floor);
@@ -661,7 +694,7 @@ function renderSettings() {
   const completed = state.quests.filter((quest) => quest.done).length;
   const values = {
     completed,
-    floor: state.dungeon.floor,
+    floor: state.deepestFloor,
     gold: state.gold,
     level: state.level,
     loot: state.totalLoot,
@@ -972,7 +1005,8 @@ function flashDungeon(result) {
   const status = $('[data-dungeon="status"]');
   if (status) {
     if (result.type === "elite") {
-      status.textContent = `Elite besiegt! +${result.gold} Gold · Etage ${state.dungeon.floor}.`;
+      const bonus = result.dailyBonus ? ` · Tagesbonus +${result.dailyBonus} G` : "";
+      status.textContent = `Elite besiegt! +${result.gold} Gold${bonus} · Etage ${state.dungeon.floor}.`;
     } else if (result.type === "floor") {
       status.textContent = `Etage geschafft! +${result.gold} Gold · Weiter zu Etage ${state.dungeon.floor}.`;
     } else if (result.type === "down") {
@@ -1004,6 +1038,15 @@ function describeCombat(result) {
 function dungeonAttack() {
   const result = DUNGEON.attackDungeon(state, state.settings.difficulty);
   state.monstersSlain += result.slain || 0;
+
+  const today = new Date().toDateString();
+  if (result.type === "elite" && state.lastEliteBonusDate !== today) {
+    result.dailyBonus = DUNGEON.eliteDailyBonus(state.settings.difficulty);
+    state.gold += result.dailyBonus;
+    state.goldEarned += result.dailyBonus;
+    state.lastEliteBonusDate = today;
+  }
+
   persist();
   renderDungeon();
   updateGold();
@@ -1021,13 +1064,52 @@ function dungeonAttack() {
     audio.playCoin();
     toast(
       result.type === "elite"
-        ? `Elite besiegt! +${result.gold} Gold`
+        ? `Elite besiegt! +${result.gold} Gold${result.dailyBonus ? ` · Tagesbonus +${result.dailyBonus}` : ""}`
         : `Etage geschafft! +${result.gold} Gold`,
       result.type === "elite" ? "magenta" : "green"
     );
   } else if (result.type === "down") {
     toast(`Besiegt! Zurück zu Etage ${state.dungeon.floor}.`, "magenta");
   }
+}
+
+function disarmDungeonReset() {
+  dungeonResetArmed = false;
+  clearTimeout(dungeonResetTimer);
+  const button = $("#dungeon-reset");
+  if (!button) return;
+  button.textContent = "Run neu starten";
+  button.classList.remove("is-armed");
+}
+
+function resetDungeonRun() {
+  const button = $("#dungeon-reset");
+  if (!dungeonResetArmed) {
+    dungeonResetArmed = true;
+    if (button) {
+      button.textContent = "Sicher? Etage 1";
+      button.classList.add("is-armed");
+    }
+    dungeonResetTimer = setTimeout(disarmDungeonReset, 3000);
+    return;
+  }
+
+  clearTimeout(dungeonResetTimer);
+  dungeonResetArmed = false;
+  const stats = DUNGEON.heroStats(state.upgrades);
+  state.dungeon = {
+    floor: 1,
+    hp: stats.maxHp,
+    enemyHp: DUNGEON.createEnemy(1, state.settings.difficulty).hp,
+  };
+  persist();
+  renderDungeon();
+  renderSettings();
+  updateGold();
+  audio.playDelete();
+  haptic(10);
+  toast(`Dungeon-Run neu gestartet. Tiefste Etage bleibt ${state.deepestFloor}.`, "gold");
+  disarmDungeonReset();
 }
 
 /* -------------------------------------------------------------------------
@@ -1122,6 +1204,7 @@ function resetProgress() {
 
   clearTimeout(resetTimer);
   resetArmed = false;
+  disarmDungeonReset();
   state = normalizeState(null);
   persist();
   syncSoundUI();
@@ -1130,6 +1213,7 @@ function resetProgress() {
   render();
   updateLoot();
   disarmReset();
+  disarmDungeonReset();
   toast("Fortschritt zurückgesetzt.", "gold");
 }
 
@@ -1276,6 +1360,7 @@ function setup() {
   $("#active-list").addEventListener("click", handleListClick);
   $("#loot-collect").addEventListener("click", collectLoot);
   $("#dungeon-attack").addEventListener("click", dungeonAttack);
+  $("#dungeon-reset")?.addEventListener("click", resetDungeonRun);
   $("#quest-title").addEventListener("input", syncDifficulty);
 
   document.addEventListener("visibilitychange", () => {

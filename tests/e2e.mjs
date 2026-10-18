@@ -1,0 +1,474 @@
+#!/usr/bin/env node
+/**
+ * QuestLog browser E2E — dependency-free.
+ *
+ * Starts a local static server, launches headless Chrome/Chromium, drives the
+ * real UI over the Chrome DevTools Protocol and verifies shop, dungeon,
+ * persistence and mobile layout flows.
+ *
+ * Set CHROME_PATH if Chrome is installed in a non-standard location.
+ */
+import { createServer } from "node:http";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { spawn, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import net from "node:net";
+
+const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".webmanifest": "application/manifest+json",
+};
+
+function findChrome() {
+  const candidates = [
+    process.env.CHROME_PATH,
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  ].filter(Boolean);
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (found) return found;
+
+  for (const binary of ["google-chrome", "chromium", "chrome"]) {
+    const result = spawnSync("which", [binary], { encoding: "utf8" });
+    if (result.status === 0 && result.stdout.trim()) return result.stdout.trim();
+  }
+  return null;
+}
+
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+async function waitForCdp(port, timeout = 15000) {
+  const started = Date.now();
+  while (Date.now() - started < timeout) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/version`);
+      if (response.ok) return;
+    } catch {
+      // Chrome is still booting.
+    }
+    await sleep(150);
+  }
+  throw new Error(`Chrome DevTools endpoint on port ${port} did not start.`);
+}
+
+function startServer() {
+  const server = createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, "http://127.0.0.1");
+      const pathname = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
+      const filePath = path.resolve(root, `.${pathname}`);
+      if (filePath !== root && !filePath.startsWith(root + path.sep)) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return;
+      }
+      const body = await readFile(filePath);
+      res.writeHead(200, {
+        "content-type": MIME[path.extname(filePath)] || "application/octet-stream",
+        "cache-control": "no-store",
+      });
+      res.end(body);
+    } catch {
+      res.writeHead(404);
+      res.end("Not found");
+    }
+  });
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      resolve({ server, port: server.address().port });
+    });
+  });
+}
+
+const checks = [];
+function check(name, pass, detail = "") {
+  checks.push({ name, pass: Boolean(pass) });
+  console.log(`${pass ? "PASS" : "FAIL"} ${name}${detail ? ` — ${detail}` : ""}`);
+}
+
+const chromePath = findChrome();
+if (!chromePath) {
+  console.error("Chrome/Chromium not found. Set CHROME_PATH to run the browser E2E suite.");
+  process.exit(2);
+}
+
+const { server, port: appPort } = await startServer();
+const debugPort = await freePort();
+const userDataDir = await mkdtemp(path.join(tmpdir(), "questlog-e2e-"));
+const chrome = spawn(
+  chromePath,
+  [
+    "--headless=new",
+    "--disable-gpu",
+    "--disable-extensions",
+    "--no-first-run",
+    "--no-default-browser-check",
+    `--remote-debugging-port=${debugPort}`,
+    `--user-data-dir=${userDataDir}`,
+    "about:blank",
+  ],
+  { stdio: "ignore" }
+);
+
+let ws;
+let nextId = 1;
+const pending = new Map();
+const waiters = new Map();
+const exceptions = [];
+const consoleErrors = [];
+
+async function connect() {
+  await waitForCdp(debugPort);
+  const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
+  const page = targets.find((target) => target.type === "page");
+  if (!page) throw new Error("No Chrome page target found.");
+
+  ws = new WebSocket(page.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => {
+    ws.onopen = resolve;
+    ws.onerror = () => reject(new Error("Could not connect to the page WebSocket."));
+  });
+
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.id) {
+      const entry = pending.get(message.id);
+      if (!entry) return;
+      pending.delete(message.id);
+      if (message.error) entry.reject(new Error(message.error.message));
+      else entry.resolve(message.result);
+      return;
+    }
+    if (message.method === "Runtime.exceptionThrown") {
+      exceptions.push(message.params.exceptionDetails?.text || "exception");
+    }
+    if (message.method === "Runtime.consoleAPICalled" && message.params.type === "error") {
+      consoleErrors.push(
+        message.params.args.map((arg) => arg.value ?? arg.description).join(" ")
+      );
+    }
+    const waiter = waiters.get(message.method);
+    if (waiter) {
+      waiters.delete(message.method);
+      waiter(message.params);
+    }
+  };
+
+  await send("Page.enable");
+  await send("Runtime.enable");
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 2,
+    mobile: true,
+  });
+  await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+}
+
+function send(method, params = {}) {
+  const id = nextId++;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    ws.send(JSON.stringify({ id, method, params }));
+  });
+}
+
+function waitEvent(method, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      waiters.delete(method);
+      reject(new Error(`Timeout waiting for ${method}`));
+    }, timeout);
+    waiters.set(method, (params) => {
+      clearTimeout(timer);
+      resolve(params);
+    });
+  });
+}
+
+async function evaluate(expression) {
+  const result = await send("Runtime.evaluate", {
+    expression,
+    returnByValue: true,
+    awaitPromise: true,
+    userGesture: true,
+  });
+  if (result.exceptionDetails) {
+    throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
+  }
+  return result.result.value;
+}
+
+async function navigate(pathname) {
+  const loaded = waitEvent("Page.loadEventFired");
+  await send("Page.navigate", { url: `http://127.0.0.1:${appPort}${pathname}` });
+  await loaded;
+  await sleep(700);
+}
+
+function stateExpression(callback) {
+  return `(() => {
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return (${callback})(state);
+  })()`;
+}
+
+try {
+  await connect();
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  await evaluate("localStorage.clear()");
+  await navigate(`/index.html?e2e=${Date.now()}`);
+
+  // --- Structure -------------------------------------------------------------
+  const structure = await evaluate(`(() => ({
+    tabs: [...document.querySelectorAll('.tab-nav__btn')].map((b) => b.textContent.trim()),
+    shopPanel: !!document.querySelector('#tab-shop'),
+    modal: !!document.querySelector('#shop-modal'),
+    nativeSelects: document.querySelectorAll('select').length,
+    bodyTab: document.body.dataset.tab,
+    headerHeight: Math.round(document.querySelector('.app-header').getBoundingClientRect().height),
+    overflow: document.documentElement.scrollWidth - window.innerWidth
+  }))()`);
+  check("Four main tabs render", structure.tabs.length === 4, structure.tabs.join(" | "));
+  check("Shop is a full tab, not a modal", structure.shopPanel && !structure.modal);
+  check("No native select controls", structure.nativeSelects === 0);
+  check("Compact mobile header", structure.headerHeight < 170, `${structure.headerHeight}px`);
+  check("No horizontal mobile overflow", structure.overflow <= 0, `${structure.overflow}px`);
+
+  // --- Shop ------------------------------------------------------------------
+  const shop = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="shop"]').click();
+    document.querySelector('.shop-tab[data-shop-tab="cosmetic"]').click();
+    const before = Number(document.querySelector('.wallet__amount').textContent);
+    document.querySelector('[data-item-id="avatar_mage"]').click();
+    document.querySelector('[data-item-id="avatar_mage"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      before,
+      after: Number(document.querySelector('.wallet__amount').textContent),
+      owned: state.owned.includes('avatar_mage'),
+      equipped: state.equippedAvatar,
+      frame: document.querySelector('#avatar-frame').dataset.avatar,
+      grid: getComputedStyle(document.querySelector('#shop-grid')).gridTemplateColumns.split(' ').length
+    };
+  })()`);
+  check("Buying an avatar deducts gold", shop.after === shop.before - 120, `${shop.before} -> ${shop.after}`);
+  check("Bought avatar can be equipped", shop.owned && shop.equipped === "avatar_mage" && shop.frame === "avatar_mage");
+  check("Shop grid is two columns on mobile", shop.grid === 2, String(shop.grid));
+
+  // --- Quest + boss ----------------------------------------------------------
+  const quest = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="quests"]').click();
+    const input = document.querySelector('#quest-title');
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(input, 'E2E Quest');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('#quest-form').requestSubmit();
+    const bossBefore = Number(document.querySelector('[data-boss="hp"]').textContent);
+    document.querySelector('.quest-check').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      quests: state.quests.length,
+      done: state.quests[0].done,
+      xp: state.xp,
+      bossBefore,
+      bossAfter: Number(document.querySelector('[data-boss="hp"]').textContent),
+      gold: state.gold
+    };
+  })()`);
+  check("Quest is created and completed", quest.quests === 1 && quest.done);
+  check("Completion grants XP and damages the boss", quest.xp > 0 && quest.bossAfter < quest.bossBefore);
+
+  // --- Elite floor + elemental sprite ---------------------------------------
+  await evaluate(stateExpression(`(state) => {
+    state.gold = 500;
+    state.dungeon.floor = 5;
+    state.dungeon.hp = 50;
+    state.dungeon.enemyHp = 1;
+    state.deepestFloor = 5;
+    state.lastEliteBonusDate = null;
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  await evaluate(`document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click()`);
+  await sleep(300);
+
+  const eliteUi = await evaluate(`(() => {
+    const sprite = document.querySelector('#dungeon-enemy-sprite');
+    return {
+      element: sprite.dataset.element,
+      crown: !!sprite.querySelector('.enemy-crown'),
+      daily: document.querySelector('[data-dungeon="elite-daily"]').textContent.trim(),
+      weakness: document.querySelector('[data-dungeon="enemy-weakness"]').textContent.trim(),
+      goldBefore: Number(document.querySelector('.wallet__amount').textContent)
+    };
+  })()`);
+  check("Elite uses an elemental sprite and crown", eliteUi.element === "fire" && eliteUi.crown, eliteUi.element);
+  check("Daily elite bonus is advertised", eliteUi.daily.includes("150"), eliteUi.daily);
+
+  const runeMap = { Feuer: "fire", Frost: "frost", Sturm: "storm", Schatten: "shadow" };
+  await evaluate(`document.querySelector('.rune-btn[data-rune="${runeMap[eliteUi.weakness]}"]').click()`);
+  await evaluate("window.__e2eRandom = Math.random; Math.random = () => 0.5");
+  const eliteFight = await evaluate(`(() => {
+    for (let i = 0; i < 10 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 5; i += 1) {
+      document.querySelector('#dungeon-attack').click();
+    }
+    Math.random = window.__e2eRandom;
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      floor: state.dungeon.floor,
+      deepest: state.deepestFloor,
+      bonusDate: state.lastEliteBonusDate,
+      today: new Date().toDateString(),
+      gold: state.gold,
+      daily: document.querySelector('[data-dungeon="elite-daily"]').textContent.trim(),
+      claimed: document.querySelector('[data-dungeon="elite-daily"]').classList.contains('is-claimed')
+    };
+  })()`);
+  check("Elite kill advances to the next floor", eliteFight.floor === 6, String(eliteFight.floor));
+  check("Daily elite bonus is granted once", eliteFight.gold >= eliteUi.goldBefore + 150, `${eliteUi.goldBefore} -> ${eliteFight.gold}`);
+  check("Elite bonus is marked as claimed", eliteFight.bonusDate === eliteFight.today && eliteFight.claimed, eliteFight.daily);
+  check("Deepest floor is tracked", eliteFight.deepest === 6, String(eliteFight.deepest));
+
+  // A second elite on the same day must not grant the daily bonus again.
+  const goldAfterFirstElite = eliteFight.gold;
+  await evaluate(stateExpression(`(state) => {
+    state.dungeon.floor = 10;
+    state.dungeon.hp = 50;
+    state.dungeon.enemyHp = 1;
+    state.deepestFloor = 10;
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  await evaluate(`document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click()`);
+  await evaluate("window.__e2eRandom = Math.random; Math.random = () => 0.5");
+  const secondElite = await evaluate(`(() => {
+    const weakness = document.querySelector('[data-dungeon="enemy-weakness"]').textContent.trim();
+    const map = { Feuer: 'fire', Frost: 'frost', Sturm: 'storm', Schatten: 'shadow' };
+    document.querySelector('.rune-btn[data-rune="' + map[weakness] + '"]').click();
+    for (let i = 0; i < 10 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 10; i += 1) {
+      document.querySelector('#dungeon-attack').click();
+    }
+    Math.random = window.__e2eRandom;
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return { gold: state.gold, floor: state.dungeon.floor, sprite: document.querySelector('#dungeon-enemy-sprite').dataset.element };
+  })()`);
+  check(
+    "Second elite of the day grants only the normal reward",
+    secondElite.floor === 11 && secondElite.gold - goldAfterFirstElite < 150,
+    `${goldAfterFirstElite} -> ${secondElite.gold}`
+  );
+
+  // --- Run reset -------------------------------------------------------------
+  const reset = await evaluate(`(() => {
+    const button = document.querySelector('#dungeon-reset');
+    const goldBefore = Number(document.querySelector('.wallet__amount').textContent);
+    button.click();
+    const armedText = button.textContent.trim();
+    button.click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      armedText,
+      floor: state.dungeon.floor,
+      deepest: state.deepestFloor,
+      gold: state.gold,
+      goldBefore,
+      hp: state.dungeon.hp,
+      sprite: document.querySelector('#dungeon-enemy-sprite').dataset.element
+    };
+  })()`);
+  check("Run reset requires confirmation", reset.armedText.includes("Sicher?"), reset.armedText);
+  check("Run reset returns to floor 1", reset.floor === 1 && reset.hp === 50, `floor ${reset.floor}, ${reset.hp} HP`);
+  check("Run reset preserves gold and deepest floor", reset.gold === reset.goldBefore && reset.deepest === 11);
+  check("Run reset restores the floor 1 sprite", reset.sprite === "fire", reset.sprite);
+
+  // --- Persistence -----------------------------------------------------------
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const persisted = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      floor: state.dungeon.floor,
+      deepest: state.deepestFloor,
+      avatar: state.equippedAvatar,
+      owned: state.owned.includes('avatar_mage'),
+      quests: state.quests.length,
+      done: state.quests[0]?.done,
+      bonusDate: state.lastEliteBonusDate,
+      today: new Date().toDateString(),
+      uiFloor: document.querySelector('[data-dungeon="floor"]').textContent,
+      dailyClaimed: document.querySelector('[data-dungeon="elite-daily"]').classList.contains('is-claimed')
+    };
+  })()`);
+  check("Save data survives reload", persisted.floor === 1 && persisted.deepest === 11 && persisted.owned && persisted.done);
+  check("Cosmetic choice survives reload", persisted.avatar === "avatar_mage");
+  check("Daily elite claim survives reload", persisted.bonusDate === persisted.today && persisted.dailyClaimed);
+  check("UI reflects persisted floor", persisted.uiFloor === "1", persisted.uiFloor);
+
+  // --- Final layout + errors -------------------------------------------------
+  const layout = await evaluate(`(() => {
+    const nav = document.querySelector('.tab-nav');
+    return {
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      navPosition: getComputedStyle(nav).position,
+      touchAction: getComputedStyle(document.querySelector('.tab-nav__btn')).touchAction,
+      inputFont: getComputedStyle(document.querySelector('#quest-title')).fontSize
+    };
+  })()`);
+  check("No horizontal overflow after full flow", layout.overflow <= 0, `${layout.overflow}px`);
+  check("Tab navigation is sticky", layout.navPosition === "sticky");
+  check("Touch manipulation is enabled", layout.touchAction === "manipulation");
+  check("Form inputs avoid iOS zoom", layout.inputFont === "16px");
+
+  check("No JS exceptions", exceptions.length === 0, exceptions.join(" | "));
+  check("No console errors", consoleErrors.length === 0, consoleErrors.join(" | "));
+} catch (error) {
+  check("E2E flow completed", false, error.message);
+} finally {
+  try {
+    ws?.close();
+  } catch {
+    // ignore
+  }
+  chrome.kill("SIGTERM");
+  await new Promise((resolve) => server.close(resolve));
+  await rm(userDataDir, { recursive: true, force: true }).catch(() => {});
+}
+
+const failed = checks.filter((entry) => !entry.pass);
+console.log(`\n${checks.length - failed.length}/${checks.length} checks passed`);
+if (failed.length) {
+  console.log(`FAILED: ${failed.map((entry) => entry.name).join(", ")}`);
+  process.exitCode = 1;
+}
