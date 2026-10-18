@@ -1,9 +1,10 @@
-const CACHE = "questlog-v11";
+const CACHE = "questlog-v12";
 const ASSETS = [
   "/", "/index.html", "/manifest.json",
   "/css/styles.css",
   "/js/app.js", "/js/storage.js", "/js/audio.js", "/js/quest-manager.js",
   "/js/shop.js", "/js/raid.js", "/js/dungeon.js", "/js/map.js",
+  "/js/items.js", "/js/inventory.js", "/js/classes.js", "/js/battle.js",
   "/icons/icon-192.png", "/icons/icon-512.png"
 ];
 

@@ -3,8 +3,8 @@
 No dependencies — everything runs with the built-in Node test runner and Chrome DevTools Protocol.
 
 ```bash
-npm test          # fast unit tests (dungeon, raid, shop, storage, quests)
-npm run test:e2e  # real browser flow on an iPhone-sized viewport
+npm test          # fast unit tests (classes, battle, items, inventory, dungeon, map, shop, raid, storage, quests)
+npm run test:e2e  # real browser flow on an iPhone-sized viewport plus a desktop pass
 npm run test:all  # both
 ```
 
@@ -12,10 +12,14 @@ npm run test:all  # both
 
 | File | Coverage |
 | --- | --- |
-| `dungeon.test.mjs` | exponential upgrade costs, elite guardians, element weaknesses, sprites, crit/dodge/block, room combat, daily elite bonus |
-| `map.test.mjs` | 3x3–5x5 floor generation, room types, adjacency movement, fog of war, map repair |
+| `classes.test.mjs` | four hero classes, passives, stat deltas, skills and mana |
+| `battle.test.mjs` | turn-based 7×5 grid, movement/obstacles, melee vs ranged, skills, consumables, defeat/flee |
+| `items.test.mjs` | rarity tiers and scaling, drop tables, depth/elite luck, upgrades, sell values, comparisons |
+| `inventory.test.mjs` | paperdoll equip/swap/unequip, six quick slots, gold/scroll upgrades, selling, gear buffs, save normalization |
+| `dungeon.test.mjs` | upgrade costs, class/gear stat stacking, elite guardians, element weaknesses, sprites, heroic scaling |
+| `map.test.mjs` | 3×3–5×5 floor generation, room types, adjacency movement, fog of war, map repair |
+| `shop.test.mjs` | class skins, boosters, scrolls, heroic 1.75× pricing, purchases and equipping |
 | `raid.test.mjs` | boss HP/rewards, quest gold, idle-loot pacing/cap/collection |
-| `shop.test.mjs` | avatar purchase/equip, skin buffs, boosters, rewards, heroic 1.75x pricing, insufficient gold |
 | `storage.test.mjs` | LocalStorage roundtrip and corrupt-save handling |
 | `quest.test.mjs` | XP curve, level-ups, streak handling, daily reset |
 
@@ -23,12 +27,13 @@ npm run test:all  # both
 
 The script starts its own static server and a headless Chrome instance, then drives the real UI:
 
-- four main tabs, no shop modal, no native selects
-- avatar purchase + equip (skin pricing) and two-column mobile shop
-- quest creation/completion, XP and boss damage
-- room map rendering, DPad exploration and combat only in monster/boss rooms
+- five main tabs including **🎒 Inventar**, no Basar naming, no native selects
+- class selection gate, all four class cards, class skill wiring and persistence
+- tactical battle grid: 35 tiles, hero/enemy tokens, DPad grid movement, melee/ranged labels
 - elemental elite sprite/crown, daily elite bonus (only once per day)
-- optional dungeon run reset (with confirmation) that keeps gold and deepest floor
+- run reset (with confirmation) that keeps gold and deepest floor
+- inventory paperdoll (4 slots / 6 quick slots), dropped gear comparison, equipping and gold upgrades
+- avatar purchase + equip, two-column mobile shop, Schriftrollen tab
 - LocalStorage persistence across reloads
 - mobile overflow, sticky navigation, touch-action, thumb-sized DPad/attack controls and iOS zoom guard
 - desktop pass: no overflow, side-by-side map/DPad, non-sticky controls

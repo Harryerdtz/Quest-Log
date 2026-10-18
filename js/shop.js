@@ -1,8 +1,31 @@
 // shop.js — pixel avatar sprites, shop catalog and transactions
 import { RUNES, ELEMENT_EFFECTS, isHeroic } from "./dungeon.js";
+import { CONSUMABLES } from "./items.js";
 
 const svg = (content, className = "avatar-sprite") =>
   `<svg class="${className}" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${content}</svg>`;
+
+// Shared 16x16 hero silhouette so every class skin stays in the same pixel grid.
+const classSprite = ({ robe, trim, eye, metal }) =>
+  svg(`
+    <rect x="6" y="0" width="4" height="1" fill="${trim}"/>
+    <rect x="4" y="1" width="8" height="1" fill="${trim}"/>
+    <rect x="3" y="2" width="10" height="2" fill="${trim}"/>
+    <rect x="3" y="4" width="1" height="3" fill="${metal}"/>
+    <rect x="12" y="4" width="1" height="3" fill="${metal}"/>
+    <rect x="4" y="4" width="8" height="1" fill="#c99a6b"/>
+    <rect x="4" y="5" width="8" height="4" fill="#f4c99a"/>
+    <rect x="5" y="6" width="2" height="2" fill="${eye}"/>
+    <rect x="9" y="6" width="2" height="2" fill="${eye}"/>
+    <rect x="7" y="8" width="2" height="1" fill="#a86b48"/>
+    <rect x="2" y="9" width="2" height="4" fill="${metal}"/>
+    <rect x="12" y="9" width="2" height="4" fill="${metal}"/>
+    <rect x="3" y="9" width="10" height="6" fill="${robe}"/>
+    <rect x="4" y="10" width="8" height="1" fill="${trim}"/>
+    <rect x="7" y="11" width="2" height="3" fill="${trim}"/>
+    <rect x="5" y="14" width="2" height="1" fill="${robe}"/>
+    <rect x="9" y="14" width="2" height="1" fill="${robe}"/>
+  `);
 
 export const COIN_SVG = `<svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
   <rect x="2" y="0" width="4" height="1" fill="#ffcd38"/>
@@ -101,6 +124,46 @@ export const AVATARS = {
       <rect x="4" y="13" width="8" height="1" fill="#8b90a6"/>
     `),
   },
+  avatar_warden: {
+    id: "avatar_warden",
+    name: "Eiserner Wächter",
+    desc: "Krieger-Skin: Schwere Platten und ein Turmschild, das jede Etage übersteht.",
+    price: 2200,
+    accent: "#7fd4ff",
+    buff: { maxHp: 45, defense: 7, block: 0.05 },
+    buffText: "+45 max. HP · +7 Verteidigung · +5% Blocken",
+    sprite: classSprite({ robe: "#4a5568", trim: "#cfd6e6", eye: "#7fd4ff", metal: "#8b90a6" }),
+  },
+  avatar_archon: {
+    id: "avatar_archon",
+    name: "Arkaner Archon",
+    desc: "Magier-Skin: Ein Gewand aus Sternenstaub bündelt jede Rune doppelt.",
+    price: 2600,
+    accent: "#a78bfa",
+    buff: { elementPower: 0.25, crit: 0.08, mana: 8 },
+    buffText: "+25% Elementarschaden · +8% Krit · +8 Mana",
+    sprite: classSprite({ robe: "#5b3fa8", trim: "#a78bfa", eye: "#ffcd38", metal: "#cfd6e6" }),
+  },
+  avatar_nightblade: {
+    id: "avatar_nightblade",
+    name: "Nachtschatten",
+    desc: "Schurken-Skin: Schlägt aus dem Schatten zu und sammelt Beute im Vorbeigehen.",
+    price: 2400,
+    accent: "#4eef91",
+    buff: { crit: 0.18, dodge: 0.14, luck: 0.1 },
+    buffText: "+18% Krit · +14% Ausweichen · +10% Loot-Glück",
+    sprite: classSprite({ robe: "#22303f", trim: "#4eef91", eye: "#e94560", metal: "#8b90a6" }),
+  },
+  avatar_lightbringer: {
+    id: "avatar_lightbringer",
+    name: "Lichtbringer",
+    desc: "Kleriker-Skin: Göttlicher Segen heilt tiefe Wunden und stärkt die Rüstung.",
+    price: 2500,
+    accent: "#ffe37a",
+    buff: { maxHp: 25, healing: 0.3, defense: 4 },
+    buffText: "+25 max. HP · +30% Heilung · +4 Verteidigung",
+    sprite: classSprite({ robe: "#e9e2c8", trim: "#ffcd38", eye: "#4eef91", metal: "#b8860b" }),
+  },
   avatar_knight: {
     id: "avatar_knight",
     name: "Gold-Ritter",
@@ -195,7 +258,7 @@ export const SHOP_ITEMS = [
     id: "booster_xp",
     type: "booster",
     resource: "xp",
-    name: "XP-Elexier",
+    name: "XP-Multiplikator",
     desc: "+50% XP für die nächsten 10 abgeschlossenen Quests.",
     price: 150,
     charges: 10,
@@ -228,13 +291,49 @@ export const SHOP_ITEMS = [
     id: "booster_boss",
     type: "booster",
     resource: "boss",
-    name: "Boss-Trank",
+    name: "Boss-Killer-Elixier",
     desc: "+50% Schaden gegen Raumwächter und Bosse für 5 Treffer.",
     price: 180,
     charges: 5,
     accent: "#e94560",
     icon: bossPotionIcon,
   },
+  {
+    id: "booster_luck",
+    type: "booster",
+    resource: "luck",
+    name: "Loot-Glücks-Trank",
+    desc: "+1 Loot-Glück für die nächsten 10 Drops — mehr Selten, Episch und Legendär.",
+    price: 220,
+    charges: 10,
+    accent: "#a78bfa",
+    icon: magnetIcon,
+  },
+  {
+    id: "booster_mana",
+    type: "booster",
+    resource: "mana",
+    name: "Mana-Trank",
+    desc: "Füllt im Kampf sofort 60% Mana auf — 10 Ladungen.",
+    price: 140,
+    charges: 10,
+    accent: "#7fd4ff",
+    icon: bossPotionIcon,
+  },
+  ...["scroll_upgrade", "scroll_blast", "scroll_ward"].map((id) => {
+    const consumable = CONSUMABLES[id];
+    return {
+      id: `shop_${id}`,
+      type: "scroll",
+      consumableId: id,
+      name: consumable.name,
+      desc: `${consumable.desc} Landet im Inventar-Beutel für die Schnellslots.`,
+      price: consumable.value,
+      accent: consumable.rarity === "epic" ? "#a78bfa" : "#ffcd38",
+      icon: bossPotionIcon,
+      buffText: consumable.desc,
+    };
+  }),
   {
     id: "reward_coffee",
     type: "reward",
@@ -276,10 +375,19 @@ export function getShopItem(id) {
   return SHOP_ITEMS.find((item) => item.id === id) || RUNE_ITEMS.find((item) => item.id === id) || null;
 }
 
-export function buyItem(state, item, mode = "normal") {
+export function buyItem(state, item, mode = "normal", options = {}) {
   if (!item) return { ok: false, reason: "missing" };
   const price = itemPrice(item, mode);
   if (state.gold < price) return { ok: false, reason: "gold" };
+
+  if (item.type === "scroll") {
+    const consumable = options.createConsumable
+      ? options.createConsumable(item.consumableId)
+      : null;
+    if (!consumable) return { ok: false, reason: "invalid" };
+    state.gold -= price;
+    return { ok: true, price, consumable, message: `${item.name} in den Beutel gelegt.` };
+  }
 
   if (item.type === "cosmetic") {
     if (state.owned.includes(item.id)) return { ok: false, reason: "owned" };
@@ -294,6 +402,8 @@ export function buyItem(state, item, mode = "normal") {
     else if (item.resource === "gold") state.boosterGold = (state.boosterGold || 0) + item.charges;
     else if (item.resource === "loot") state.boosterLoot = (state.boosterLoot || 0) + item.charges;
     else if (item.resource === "boss") state.boosterBoss = (state.boosterBoss || 0) + item.charges;
+    else if (item.resource === "luck") state.boosterLuck = (state.boosterLuck || 0) + item.charges;
+    else if (item.resource === "mana") state.boosterMana = (state.boosterMana || 0) + item.charges;
     return { ok: true, price, message: `${item.name}: +${item.charges} Ladungen aktiviert.` };
   }
 

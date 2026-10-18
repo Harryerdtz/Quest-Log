@@ -4627,3 +4627,727 @@ button.is-pressed {
     transition: none;
   }
 }
+
+/* ==========================================================================
+   SHATTERED PIXEL DUNGEON OVERHAUL — dark tiles, tactical grid, inventory
+   ========================================================================== */
+
+/* --- Dense 16-bit dungeon tiles + fog of war ----------------------------- */
+
+.dungeon-map-wrap {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 4px),
+    #090b10;
+  border: 2px solid #05070a;
+  box-shadow:
+    inset 0 0 0 2px #1b2130,
+    inset 0 0 26px rgba(0, 0, 0, 0.9);
+}
+
+.dungeon-map {
+  gap: 3px;
+}
+
+.map-cell {
+  font-family: var(--font-display);
+  font-size: clamp(9px, 2.6vw, 13px);
+  color: #6b7285;
+  background:
+    linear-gradient(180deg, #2b3242 0 46%, #202634 46% 52%, #171c27 52% 100%);
+  border: 2px solid #05070a;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.65);
+  text-shadow: 1px 1px 0 #05070a;
+}
+
+.map-cell.is-fog {
+  color: #1c2331;
+  background:
+    repeating-linear-gradient(45deg, #0b0e14 0 3px, #05070a 3px 6px);
+  border-color: #05070a;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.95);
+  cursor: default;
+}
+
+.map-cell.is-fog:not(:disabled) {
+  cursor: pointer;
+}
+
+.map-cell.is-seen {
+  color: #59637a;
+  background:
+    linear-gradient(180deg, #1d2330 0 50%, #141924 50% 100%);
+  border-color: #0a0d14;
+}
+
+.map-cell.is-visited {
+  color: #f0e6c8;
+  background:
+    linear-gradient(180deg, #3a4356 0 50%, #2a3243 50% 100%);
+  border-color: #0d1017;
+}
+
+.map-cell.is-visited.is-cleared {
+  color: #566072;
+  background:
+    linear-gradient(180deg, #232936 0 50%, #1a1f2a 50% 100%);
+}
+
+.map-cell.is-boss {
+  color: #ff8ba0;
+  background:
+    linear-gradient(180deg, #3a1622 0 50%, #240d15 50% 100%);
+  border-color: #6d1f33;
+  box-shadow: inset 0 0 10px rgba(233, 69, 96, 0.35);
+}
+
+.map-cell.is-current {
+  color: #120f04;
+  background: linear-gradient(180deg, #ffe37a 0 50%, var(--gold) 50% 100%);
+  border-color: #120f04;
+  box-shadow:
+    0 0 0 2px #ffcd38,
+    0 0 16px rgba(255, 205, 56, 0.55),
+    inset 0 -3px 0 var(--gold-deep);
+  animation: torch-flicker 1100ms steps(2, end) infinite;
+}
+
+.map-cell.is-current.is-cleared {
+  background: linear-gradient(180deg, #83ffba 0 50%, var(--green) 50% 100%);
+  box-shadow:
+    0 0 0 2px #4eef91,
+    0 0 14px rgba(78, 239, 145, 0.45),
+    inset 0 -3px 0 var(--green-deep);
+}
+
+@keyframes torch-flicker {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.22) saturate(1.1); }
+}
+
+.room-card {
+  border: 2px solid #05070a;
+  border-left: 5px solid var(--gold);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 60%),
+    #141924;
+  box-shadow: inset 0 0 0 2px #1b2130;
+}
+
+/* --- Hero class selection ------------------------------------------------- */
+
+.class-select {
+  margin-bottom: 12px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 205, 56, 0.08), transparent 70%),
+    #0c0f15;
+  border: 2px solid #05070a;
+  box-shadow: inset 0 0 0 2px #1b2130;
+}
+
+.class-select__eyebrow {
+  margin: 0 0 3px;
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.class-select__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--gold);
+}
+
+.class-select__hint {
+  margin: 6px 0 10px;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 7px;
+}
+
+.class-card {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  text-align: left;
+  background: #151a24;
+  border: 2px solid #232a38;
+  border-radius: 0;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.class-card__icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.class-card__name {
+  font-family: var(--font-display);
+  font-size: 8px;
+  line-height: 1.5;
+  color: var(--gold);
+}
+
+.class-card__tag {
+  font-size: 8px;
+  color: var(--green);
+}
+
+.class-card__desc {
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.class-card__skill {
+  font-size: 8px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.class-card:hover,
+.class-card:focus-visible {
+  border-color: var(--gold);
+  background: #1c2230;
+}
+
+.class-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 205, 56, 0.06);
+  border: 2px solid rgba(255, 205, 56, 0.5);
+}
+
+.class-badge__icon {
+  font-size: 15px;
+}
+
+.class-badge__name {
+  font-family: var(--font-display);
+  font-size: 8px;
+  color: var(--gold);
+}
+
+.class-badge__passive {
+  flex: 1 1 140px;
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* --- Tactical battle grid ------------------------------------------------- */
+
+.battle-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.battle-side {
+  display: grid;
+  gap: 4px;
+  padding: 7px;
+  background: #0d1017;
+  border: 2px solid #05070a;
+  box-shadow: inset 0 0 0 2px #1b2130;
+}
+
+.battle-side--enemy {
+  background: #140d12;
+  box-shadow: inset 0 0 0 2px #2a1620;
+}
+
+.battle-side__name {
+  font-family: var(--font-display);
+  font-size: 7px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.battle-side--enemy .battle-side__name {
+  color: #ff8ba0;
+}
+
+.battle-side__meta {
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.battle-side__meta b {
+  color: var(--gold);
+}
+
+.battle-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-w, 7), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--grid-h, 5), minmax(0, 1fr));
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 6px;
+  aspect-ratio: 7 / 5;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 4px),
+    #06080c;
+  border: 2px solid #05070a;
+  box-shadow: inset 0 0 0 2px #1b2130, inset 0 0 30px rgba(0, 0, 0, 0.9);
+}
+
+.battle-tile {
+  background:
+    linear-gradient(180deg, #262d3c 0 48%, #1b2130 48% 54%, #141924 54% 100%);
+  border: 1px solid #05070a;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.05);
+}
+
+.battle-tile.is-walkable {
+  cursor: pointer;
+}
+
+.battle-tile.is-walkable:hover {
+  background:
+    linear-gradient(180deg, #33405a 0 48%, #232c3e 48% 100%);
+}
+
+.battle-tile.is-wall {
+  background:
+    repeating-linear-gradient(45deg, #0a0d13 0 4px, #05070a 4px 8px);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+}
+
+.battle-token {
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  pointer-events: none;
+  animation: token-drop 180ms steps(3, end) both;
+}
+
+.battle-token .avatar-sprite,
+.battle-token .enemy-sprite {
+  width: 100%;
+  height: 100%;
+  max-width: 34px;
+  max-height: 34px;
+}
+
+.battle-token--hero {
+  filter: drop-shadow(0 0 6px rgba(78, 239, 145, 0.5));
+}
+
+.battle-token--enemy {
+  filter: drop-shadow(0 0 6px rgba(233, 69, 96, 0.45));
+}
+
+@keyframes token-drop {
+  0% { transform: translateY(-6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.battle-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  margin-bottom: 8px;
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.battle-meta b {
+  color: var(--gold);
+}
+
+.quick-bar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.quick-slot {
+  display: grid;
+  gap: 1px;
+  place-items: center;
+  padding: 5px 2px;
+  background: #0d1017;
+  border: 2px solid #232a38;
+  border-radius: 0;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.quick-slot.is-filled {
+  border-color: var(--gold);
+  background: rgba(255, 205, 56, 0.08);
+}
+
+.quick-slot[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quick-slot__key {
+  font-family: var(--font-display);
+  font-size: 6px;
+  color: var(--muted);
+}
+
+.quick-slot__name {
+  font-size: 7px;
+  line-height: 1.2;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* --- Inventory paperdoll -------------------------------------------------- */
+
+.inventory-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.inventory-score {
+  margin-left: auto;
+  padding: 3px 7px;
+  font-family: var(--font-display);
+  font-size: 7px;
+  color: var(--green);
+  border: 2px solid var(--green);
+}
+
+.paperdoll {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.paperdoll-slot {
+  display: grid;
+  gap: 3px;
+  min-height: 82px;
+  padding: 8px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.014) 0 4px, transparent 4px 8px),
+    #10141c;
+  border: 2px dashed var(--line);
+  border-left: 5px solid var(--rarity, var(--line));
+}
+
+.paperdoll-slot.is-filled {
+  border-style: solid;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 60%),
+    #161c27;
+  box-shadow: 0 0 14px -6px var(--rarity);
+}
+
+.paperdoll-slot__label {
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+
+.paperdoll-slot__item {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.paperdoll-slot__stats {
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.inventory-subtitle {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.inventory-subtitle--bag {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+.quick-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.quick-slot-card {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  background: #10141c;
+  border: 2px dashed var(--line);
+  border-left: 4px solid var(--rarity, var(--line));
+}
+
+.quick-slot-card.is-filled {
+  border-style: solid;
+  background: #161c27;
+}
+
+.quick-slot-card__key {
+  font-family: var(--font-display);
+  font-size: 6px;
+  color: var(--muted);
+}
+
+.quick-slot-card__name {
+  font-size: 8px;
+  line-height: 1.3;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.inventory-bag {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.inventory-empty {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  border: 2px dashed var(--line);
+}
+
+.item-card {
+  display: grid;
+  gap: 5px;
+  padding: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 60%),
+    #141924;
+  border: 2px solid #05070a;
+  border-left: 5px solid var(--rarity, var(--line));
+  box-shadow: inset 0 0 0 2px #1b2130;
+}
+
+.item-card.is-equipped {
+  box-shadow: inset 0 0 0 2px #1b2130, 0 0 16px -6px var(--rarity);
+}
+
+.item-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 8px;
+}
+
+.item-card__rarity {
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.4px;
+  color: var(--rarity);
+}
+
+.item-card__level {
+  color: var(--muted);
+}
+
+.item-card__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 8px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.item-card__stats {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--gold);
+}
+
+.item-card__compare {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.45;
+  color: var(--green);
+}
+
+.item-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.item-card__actions .btn {
+  min-height: 26px;
+  padding: 4px 6px;
+  font-size: 6px;
+}
+
+.inventory-side .panel__head {
+  margin-bottom: 10px;
+}
+
+.inventory-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.inventory-stat {
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 6px 3px;
+  font-size: 7px;
+  color: var(--muted);
+  background: #10141c;
+  border: 2px solid #232a38;
+}
+
+.inventory-stat b {
+  font-family: var(--font-display);
+  font-size: 8px;
+  color: var(--gold);
+}
+
+.inventory-tips {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.inventory-tips li {
+  padding-left: 10px;
+  border-left: 3px solid var(--line);
+}
+
+.inventory-tips b {
+  color: var(--green);
+}
+
+.booster-chip--luck {
+  color: #cbb8ff;
+  border-color: #a78bfa;
+}
+
+/* --- Mobile: five tabs, one-hand battle and inventory -------------------- */
+
+@media (max-width: 700px) {
+  .tab-nav__btn {
+    font-size: 6px;
+    gap: 2px;
+    padding: 5px 1px;
+  }
+
+  .tab-nav__btn > span {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .class-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .class-card__desc {
+    display: none;
+  }
+
+  .battle-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .battle-grid {
+    aspect-ratio: 7 / 5;
+  }
+
+  .quick-bar {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .inventory-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .paperdoll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick-slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .inventory-bag {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 359px) {
+  .quick-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-cell.is-current,
+  .battle-token {
+    animation: none;
+  }
+}
+
+/* Five shop categories (Equipment, Booster, Kosmetik, Schriftrollen, Rewards) */
+.shop-panel .shop-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 700px) {
+  .shop-panel .shop-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

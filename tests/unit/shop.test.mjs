@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { AVATARS, SHOP_ITEMS, buyItem, equipAvatar, getShopItem, itemPrice } from "../../js/shop.js";
 import { UPGRADES, upgradeCost } from "../../js/dungeon.js";
+import { createConsumable } from "../../js/items.js";
 
 function makeState() {
   return {
@@ -13,14 +14,28 @@ function makeState() {
   };
 }
 
-test("catalog contains avatars, boosters and repeatable rewards", () => {
-  assert.equal(Object.keys(AVATARS).length, 4);
+test("catalog contains class skins, boosters, scrolls and repeatable rewards", () => {
+  assert.equal(Object.keys(AVATARS).length, 8, "one skin per class plus the base roster");
   assert.ok(SHOP_ITEMS.some((item) => item.type === "booster"));
   assert.ok(SHOP_ITEMS.some((item) => item.type === "reward"));
   assert.equal(getShopItem("missing"), null);
   assert.ok(getShopItem("avatar_mage"));
   assert.equal(UPGRADES.length, 8, "equipment line is expanded to eight pieces");
-  assert.equal(SHOP_ITEMS.filter((item) => item.type === "booster").length, 4);
+  assert.equal(SHOP_ITEMS.filter((item) => item.type === "booster").length, 6);
+  assert.equal(SHOP_ITEMS.filter((item) => item.type === "scroll").length, 3);
+  assert.ok(SHOP_ITEMS.some((item) => item.resource === "luck"));
+  assert.ok(SHOP_ITEMS.some((item) => item.resource === "mana"));
+});
+
+test("scrolls land in the inventory bag instead of instantly applying", () => {
+  const state = makeState();
+  const scroll = getShopItem("shop_scroll_upgrade");
+  const result = buyItem(state, scroll, "normal", { createConsumable });
+  assert.equal(result.ok, true);
+  assert.equal(result.consumable.name, "Schriftrolle der Veredelung");
+  assert.equal(result.consumable.effect, "upgrade");
+  assert.equal(state.gold, 2500 - scroll.price);
+  assert.equal(buyItem(makeState(), scroll).ok, false);
 });
 
 test("skins carry real stat buffs and get more expensive with power", () => {
@@ -34,6 +49,11 @@ test("skins carry real stat buffs and get more expensive with power", () => {
   assert.ok(AVATARS.avatar_knight.price > AVATARS.avatar_rogue.price);
   assert.equal(AVATARS.avatar_rogue.buff.crit, 0.15);
   assert.equal(AVATARS.avatar_knight.buff.maxHp, 30);
+  assert.equal(AVATARS.avatar_warden.buff.defense, 7);
+  assert.equal(AVATARS.avatar_archon.buff.elementPower, 0.25);
+  assert.equal(AVATARS.avatar_nightblade.buff.dodge, 0.14);
+  assert.equal(AVATARS.avatar_lightbringer.buff.healing, 0.3);
+  assert.ok(AVATARS.avatar_archon.price > AVATARS.avatar_knight.price);
 });
 
 test("heroic difficulty raises every shop price and upgrade by 1.75x", () => {

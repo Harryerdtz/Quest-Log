@@ -2,46 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as D from "../../js/dungeon.js";
 
-function withRandom(values, fn) {
-  const original = Math.random;
-  let index = 0;
-  Math.random = () => values[Math.min(index++, values.length - 1)];
-  try {
-    return fn();
-  } finally {
-    Math.random = original;
-  }
-}
-
-function makeDungeon(overrides = {}) {
-  return {
-    floor: 1,
-    size: 3,
-    types: ["start", "monster", "treasure", "monster", "boss", "trap", "monster", "altar", "merchant"],
-    pos: 1,
-    visited: [true, true, false, false, false, false, false, false, false],
-    cleared: [true, false, false, false, false, false, false, false, false],
-    hp: 50,
-    enemyHp: 1,
-    burn: 0,
-    frozen: false,
-    ...overrides,
-  };
-}
-
-function makeState(overrides = {}) {
-  return {
-    gold: 0,
-    upgrades: { weapon: 0, armor: 0, strength: 0, vitality: 0 },
-    runes: ["fire", "frost"],
-    rune: "frost",
-    deepestFloor: 1,
-    boosterBoss: 0,
-    dungeon: makeDungeon(),
-    ...overrides,
-  };
-}
-
 test("upgrade costs grow exponentially in both modes", () => {
   const weapon = D.UPGRADES.find((entry) => entry.id === "weapon");
   assert.equal(D.upgradeCost(weapon, 0), 60);
@@ -53,7 +13,7 @@ test("upgrade costs grow exponentially in both modes", () => {
   assert.ok(D.upgradeCost(weapon, 4) > D.upgradeCost(weapon, 3) * 1.5);
 });
 
-test("hero stats scale with upgrades and expose crit/block", () => {
+test("hero stats expose combat, magic and loot values", () => {
   assert.deepEqual(D.heroStats(), {
     attack: 10,
     defense: 0,
@@ -63,12 +23,43 @@ test("hero stats scale with upgrades and expose crit/block", () => {
     dodge: 0.02,
     goldFind: 1,
     elementPower: 0,
+    spellPower: 0,
+    luck: 0,
+    healing: 0,
+    range: 1,
+    maxMana: 0,
   });
   const stats = D.heroStats({ weapon: 2, armor: 1, strength: 3, vitality: 2 });
   assert.equal(stats.attack, 10 + 6 + 6);
   assert.equal(stats.defense, 2);
   assert.equal(stats.maxHp, 50 + 20 + 4);
   assert.ok(stats.crit > 0.05 && stats.block > 0.03);
+});
+
+test("hero classes and gear shift the base stats", () => {
+  const warrior = D.heroStats({}, {}, { cls: "warrior" });
+  assert.equal(warrior.maxHp, 70);
+  assert.equal(warrior.attack, 12);
+  assert.ok(warrior.block >= 0.08);
+
+  const mage = D.heroStats({}, {}, { cls: "mage" });
+  assert.equal(mage.maxMana, 24);
+  assert.equal(mage.range, 5);
+
+  const rogue = D.heroStats({}, {}, { cls: "rogue" });
+  assert.ok(rogue.crit > 0.15 && rogue.dodge > 0.11);
+
+  const geared = D.heroStats(
+    {},
+    {},
+    { cls: "warrior", gear: { attack: 7, defense: 3, maxHp: 20, crit: 0.1, luck: 0.2, spellPower: 0.5, mana: 6 } }
+  );
+  assert.equal(geared.attack, 19);
+  assert.equal(geared.defense, 7);
+  assert.equal(geared.maxHp, 90);
+  assert.equal(geared.luck, 0.2);
+  assert.equal(geared.spellPower, 0.5);
+  assert.equal(geared.maxMana, 6);
 });
 
 test("every fifth floor's guardian is an elite with a big HP jump", () => {
@@ -110,41 +101,6 @@ test("heroic enemies are tougher and reward more", () => {
   assert.ok(heroic.attack > normal.attack * 1.3);
   assert.ok(heroic.reward > normal.reward);
   assert.ok(heroic.dodge > normal.dodge);
-});
-
-test("attackDungeon clears a room without skipping the floor", () => {
-  const state = makeState();
-  const result = withRandom([0.5], () => D.attackDungeon(state, "normal"));
-  assert.equal(result.type, "monster");
-  assert.equal(result.damage, 15); // 10 attack × 1.5 elemental weakness
-  assert.equal(state.dungeon.floor, 1);
-  assert.equal(state.dungeon.cleared[1], true);
-  assert.equal(state.dungeon.enemyHp, 0);
-  assert.ok(state.gold > 0);
-  assert.equal(result.slain, 1);
-});
-
-test("attackDungeon applies block and counter damage", () => {
-  const state = makeState({ dungeon: makeDungeon({ enemyHp: 999 }) });
-  const result = withRandom([0.9, 0.9, 0.9, 0.9, 0, 0.9], () => D.attackDungeon(state, "normal"));
-  assert.equal(result.type, "hit");
-  assert.equal(result.blocked, true);
-  assert.ok(result.counter >= 1);
-  assert.ok(state.dungeon.hp < 50);
-});
-
-test("attackDungeon handles dodges and defeat", () => {
-  const dodged = makeState({ dungeon: makeDungeon({ enemyHp: 999 }) });
-  const dodgeResult = withRandom([0.5, 0, 0.9, 0.9, 0.9], () => D.attackDungeon(dodged, "normal"));
-  assert.equal(dodgeResult.dodged, true);
-  assert.equal(dodgeResult.damage, 0);
-
-  const defeated = makeState({ dungeon: makeDungeon({ floor: 3, hp: 1, enemyHp: 999 }) });
-  const downResult = withRandom([0.5, 0.9, 0.9, 0.9, 0.9], () => D.attackDungeon(defeated, "normal"));
-  assert.equal(downResult.type, "down");
-  assert.equal(defeated.dungeon.floor, 3);
-  assert.equal(defeated.dungeon.pos, 0);
-  assert.equal(defeated.dungeon.hp, 50);
 });
 
 test("daily elite bonus scales with difficulty", () => {

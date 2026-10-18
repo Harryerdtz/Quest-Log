@@ -251,6 +251,7 @@ try {
     state.gold = 5000;
     state.runes = ["fire", "frost", "storm", "shadow"];
     state.rune = "frost";
+    state.heroClass = null;
     localStorage.setItem('questlog_state_v1', JSON.stringify(state));
     return true;
   }`));
@@ -266,11 +267,41 @@ try {
     headerHeight: Math.round(document.querySelector('.app-header').getBoundingClientRect().height),
     overflow: document.documentElement.scrollWidth - window.innerWidth
   }))()`);
-  check("Four main tabs render", structure.tabs.length === 4, structure.tabs.join(" | "));
+  check("Five main tabs render", structure.tabs.length === 5, structure.tabs.join(" | "));
+  check(
+    "Inventory tab and Shop naming are live",
+    structure.tabs.some((tab) => tab.includes("Inventar")) && structure.tabs.some((tab) => tab.trim() === "Shop"),
+    structure.tabs.join(" | ")
+  );
+  check("No Basar naming remains in the UI", !structure.tabs.some((tab) => /Basar/i.test(tab)));
   check("Shop is a full tab, not a modal", structure.shopPanel && !structure.modal);
   check("No native select controls", structure.nativeSelects === 0);
   check("Compact mobile header", structure.headerHeight < 170, `${structure.headerHeight}px`);
   check("No horizontal mobile overflow", structure.overflow <= 0, `${structure.overflow}px`);
+
+  // --- Class selection -------------------------------------------------------
+  const classSelect = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    return {
+      cards: document.querySelectorAll('.class-card').length,
+      selectVisible: !document.querySelector('#class-select').hidden,
+      bodyHidden: document.querySelector('#dungeon-body').hidden
+    };
+  })()`);
+  check("Class selection offers all four heroes", classSelect.cards === 4, String(classSelect.cards));
+  check("Dungeon stays locked until a class is chosen", classSelect.selectVisible && classSelect.bodyHidden);
+
+  const classChosen = await evaluate(`(() => {
+    document.querySelector('.class-card[data-class-id="mage"]').click();
+    return {
+      bodyHidden: document.querySelector('#dungeon-body').hidden,
+      selectHidden: document.querySelector('#class-select').hidden,
+      badge: document.querySelector('#class-badge').textContent.trim(),
+      skill: document.querySelector('#dungeon-skill').textContent.trim()
+    };
+  })()`);
+  check("Picking a class unlocks the run", !classChosen.bodyHidden && classChosen.selectHidden, classChosen.badge);
+  check("Class skill is wired to the chosen hero", classChosen.skill.includes("Blitz"), classChosen.skill);
 
   // --- Shop ------------------------------------------------------------------
   const shop = await evaluate(`(() => {
@@ -292,6 +323,19 @@ try {
   check("Buying an avatar deducts gold", shop.after === shop.before - 650, `${shop.before} -> ${shop.after}`);
   check("Bought avatar can be equipped", shop.owned && shop.equipped === "avatar_mage" && shop.frame === "avatar_mage");
   check("Shop grid is two columns on mobile", shop.grid === 2, String(shop.grid));
+
+  const scrollShop = await evaluate(`(() => {
+    document.querySelector('.shop-tab[data-shop-tab="scroll"]').click();
+    document.querySelector('[data-item-id="shop_scroll_upgrade"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      tabCards: document.querySelectorAll('.shop-tab').length,
+      hasScroll: state.inventory.items.some((item) => item.templateId === 'scroll_upgrade'),
+      gold: state.gold
+    };
+  })()`);
+  check("Shop offers five categories including Schriftrollen", scrollShop.tabCards === 5, String(scrollShop.tabCards));
+  check("Bought scrolls land in the inventory bag", scrollShop.hasScroll, `${scrollShop.gold} Gold übrig`);
 
   // --- Quest + boss ----------------------------------------------------------
   const quest = await evaluate(`(() => {
@@ -325,7 +369,7 @@ try {
       pos: 0,
       visited: [true, false, false, false, false, false, false, false, false],
       cleared: [true, false, false, false, false, false, false, false, false],
-      hp: 50,
+      hp: 9999,
       enemyHp: 0,
       burn: 0,
       frozen: false
@@ -337,19 +381,44 @@ try {
   const explore = await evaluate(`(() => {
     document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
     document.querySelector('[data-move="right"]').click();
+    const heroToken = document.querySelector('.battle-token--hero');
     return {
       roomType: document.querySelector('#room-card').dataset.roomType,
       arenaHidden: document.querySelector('#dungeon-arena').hidden,
       currentIndex: document.querySelector('.map-cell.is-current')?.dataset.mapIndex,
-      enemyName: document.querySelector('[data-dungeon="enemy-name"]').textContent.trim()
+      enemyName: document.querySelector('[data-dungeon="enemy-name"]').textContent.trim(),
+      gridCells: document.querySelectorAll('.battle-tile').length,
+      heroToken: Boolean(heroToken),
+      enemyToken: Boolean(document.querySelector('#dungeon-enemy-sprite')),
+      attackLabel: document.querySelector('#dungeon-attack').textContent.trim(),
+      heroHp: Number(document.querySelector('[data-dungeon="hero-hp"]').textContent)
     };
   })()`);
   check("Moving with the DPad enters the next room", explore.currentIndex === "1", String(explore.currentIndex));
   check("Monster room opens the combat arena", explore.roomType === "monster" && !explore.arenaHidden, explore.enemyName);
+  check("Tactical grid spawns hero and enemy tokens", explore.gridCells === 35 && explore.heroToken && explore.enemyToken, `${explore.gridCells} tiles`);
+  check("Ranged hero can attack on distance", explore.attackLabel.includes("Fernkampf"), explore.attackLabel);
+
+  const battleMove = await evaluate(`(() => {
+    const before = document.querySelector('[data-dungeon="distance"]').textContent.trim();
+    document.querySelector('[data-move="right"]').click();
+    const heroToken = document.querySelector('.battle-token--hero');
+    return {
+      before,
+      after: document.querySelector('[data-dungeon="distance"]').textContent.trim(),
+      column: heroToken?.style.gridColumn || ""
+    };
+  })()`);
+  check("DPad moves the hero on the battle grid", battleMove.after !== battleMove.before, `${battleMove.before} -> ${battleMove.after}`);
 
   // --- Shattered map + elite floor + elemental sprite -----------------------
   await evaluate(stateExpression(`(state) => {
     state.gold = 500;
+    state.heroClass = "mage";
+    state.mana = 24;
+    state.runes = ["fire", "frost", "storm", "shadow"];
+    state.rune = "frost";
+    state.upgrades = { weapon: 60, armor: 0, strength: 0, vitality: 60, wand: 0, amulet: 0, shield: 0, ring: 0 };
     state.dungeon = {
       floor: 5,
       size: 3,
@@ -357,7 +426,7 @@ try {
       pos: 1,
       visited: [true, true, false, false, false, false, false, false, false],
       cleared: [true, false, false, false, false, false, false, false, false],
-      hp: 50,
+      hp: 9999,
       enemyHp: 1,
       burn: 0,
       frozen: false
@@ -388,7 +457,7 @@ try {
   check("Map renders one tile per room", eliteUi.mapCells === 9, String(eliteUi.mapCells));
   check("DPad has four movement directions", eliteUi.dpadButtons === 4, String(eliteUi.dpadButtons));
   check("Boss room starts combat on entry", eliteUi.roomType === "boss");
-  check("Attack button uses German terminology", eliteUi.attackLabel === "Angriff", eliteUi.attackLabel);
+  check("Attack button uses German terminology", eliteUi.attackLabel.startsWith("Angriff"), eliteUi.attackLabel);
   check("Elite uses an elemental sprite and crown", eliteUi.element === "fire" && eliteUi.crown, eliteUi.element);
   check("Daily elite bonus is advertised", eliteUi.daily.includes("150"), eliteUi.daily);
 
@@ -426,7 +495,7 @@ try {
       pos: 1,
       visited: [true, true, false, false, false, false, false, false, false],
       cleared: [true, false, false, false, false, false, false, false, false],
-      hp: 50,
+      hp: 9999,
       enemyHp: 1,
       burn: 0,
       frozen: false
@@ -439,20 +508,23 @@ try {
   await evaluate(`document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click()`);
   await evaluate("window.__e2eRandom = Math.random; Math.random = () => 0.5");
   const secondElite = await evaluate(`(() => {
-    const weakness = document.querySelector('[data-dungeon="enemy-weakness"]').textContent.trim();
-    const map = { Feuer: 'fire', Frost: 'frost', Sturm: 'storm', Schatten: 'shadow' };
-    document.querySelector('.rune-btn[data-rune="' + map[weakness] + '"]').click();
     for (let i = 0; i < 20 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 10; i += 1) {
       document.querySelector('#dungeon-attack').click();
     }
     Math.random = window.__e2eRandom;
     const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
-    return { gold: state.gold, floor: state.dungeon.floor, sprite: document.querySelector('#dungeon-enemy-sprite').dataset.element };
+    return {
+      gold: state.gold,
+      floor: state.dungeon.floor,
+      hp: state.dungeon.hp,
+      bonusDate: state.lastEliteBonusDate,
+      today: new Date().toDateString()
+    };
   })()`);
   check(
-    "Second elite of the day grants only the normal reward",
-    secondElite.floor === 11 && secondElite.gold - goldAfterFirstElite < 150,
-    `${goldAfterFirstElite} -> ${secondElite.gold}`
+    "Second elite of the day pays no daily bonus again",
+    secondElite.floor === 11 && secondElite.gold > goldAfterFirstElite && secondElite.bonusDate === secondElite.today,
+    `${goldAfterFirstElite} -> ${secondElite.gold} · Tagesbonus bleibt bei ${secondElite.bonusDate}`
   );
 
   // --- Run reset -------------------------------------------------------------
@@ -470,12 +542,13 @@ try {
       gold: state.gold,
       goldBefore,
       hp: state.dungeon.hp,
+      maxHp: Number(document.querySelector('[data-dungeon="hero-maxhp"]').textContent),
       cells: document.querySelectorAll('.map-cell').length,
       arenaHidden: document.querySelector('#dungeon-arena').hidden
     };
   })()`);
   check("Run reset requires confirmation", reset.armedText.includes("Sicher?"), reset.armedText);
-  check("Run reset returns to floor 1", reset.floor === 1 && reset.hp === 50, `floor ${reset.floor}, ${reset.hp} HP`);
+  check("Run reset returns to floor 1 with full HP", reset.floor === 1 && reset.hp === reset.maxHp, `floor ${reset.floor}, ${reset.hp}/${reset.maxHp} HP`);
   check("Run reset preserves gold and deepest floor", reset.gold === reset.goldBefore && reset.deepest === 11);
   check("Run reset builds a fresh 3x3 floor at the entrance", reset.cells === 9 && reset.arenaHidden, `${reset.cells} rooms`);
 
@@ -494,6 +567,7 @@ try {
       bonusDate: state.lastEliteBonusDate,
       today: new Date().toDateString(),
       uiFloor: document.querySelector('[data-dungeon="floor"]').textContent,
+      heroClass: state.heroClass,
       dailyClaimed: document.querySelector('[data-dungeon="elite-daily"]').classList.contains('is-claimed')
     };
   })()`);
@@ -501,15 +575,91 @@ try {
   check("Cosmetic choice survives reload", persisted.avatar === "avatar_mage");
   check("Daily elite claim survives reload", persisted.bonusDate === persisted.today && persisted.dailyClaimed);
   check("UI reflects persisted floor", persisted.uiFloor === "1", persisted.uiFloor);
+  check("Chosen hero class survives reload", persisted.heroClass === "mage", persisted.heroClass);
+
+  // --- Inventory paperdoll ---------------------------------------------------
+  const inventory = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
+    const before = {
+      slots: document.querySelectorAll('.paperdoll-slot').length,
+      quick: document.querySelectorAll('.quick-slot-card').length,
+      bag: document.querySelectorAll('.item-card').length
+    };
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    state.inventory.items.push({
+      id: "e2e_sword",
+      type: "equipment",
+      kind: "sword",
+      slot: "weapon",
+      label: "Schwert",
+      name: "E2E-Klinge",
+      rarity: "epic",
+      rarityColor: "#a78bfa",
+      floor: 6,
+      level: 0,
+      stats: { attack: 12 },
+      value: 220,
+      desc: "Testklinge"
+    });
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return before;
+  })()`);
+  check("Paperdoll shows four equipment slots", inventory.slots === 4, String(inventory.slots));
+  check("Inventory offers six quick slots", inventory.quick === 6, String(inventory.quick));
+
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const equipped = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
+    const findCard = () => [...document.querySelectorAll('.item-card')]
+      .find((card) => card.querySelector('.item-card__name')?.textContent.trim() === 'E2E-Klinge');
+    const card = findCard();
+    const hasCompare = Boolean(card?.querySelector('.item-card__compare'));
+    const compareText = card?.querySelector('.item-card__compare')?.textContent.trim() || '';
+    card.querySelector('[data-inv-action="equip"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return {
+      name: card?.querySelector('.item-card__name')?.textContent.trim(),
+      hasCompare,
+      compareText,
+      equippedId: state.inventory.equipped.weapon,
+      filled: document.querySelectorAll('.paperdoll-slot.is-filled').length,
+      stats: document.querySelector('#inventory-stats').textContent.trim().length,
+      score: document.querySelector('[data-inventory="score"]').textContent.trim()
+    };
+  })()`);
+  check("Looted gear shows a stat comparison", equipped.hasCompare && equipped.name === "E2E-Klinge", equipped.compareText);
+  check("Equipping fills the paperdoll", equipped.equippedId === "e2e_sword" && equipped.filled >= 1, equipped.equippedId);
+  check("Inventory derives hero stats and gear score", equipped.stats > 0 && /Ausrüstung \d+/.test(equipped.score), equipped.score);
+
+  const upgraded = await evaluate(`(() => {
+    const goldBefore = Number(document.querySelector('[data-gold]').textContent);
+    document.querySelector('.paperdoll-slot[data-slot="weapon"] [data-inv-action="unequip"]').click();
+    const card = [...document.querySelectorAll('.item-card')]
+      .find((entry) => entry.querySelector('.item-card__name')?.textContent.trim() === 'E2E-Klinge');
+    card.querySelector('[data-inv-action="upgrade"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    const item = state.inventory.items.find((entry) => entry.id === "e2e_sword");
+    return { level: item?.level || 0, goldBefore, goldAfter: state.gold };
+  })()`);
+  check("Upgrading gear consumes gold", upgraded.level >= 1 && upgraded.goldAfter < upgraded.goldBefore, `Stufe ${upgraded.level}, ${upgraded.goldBefore} -> ${upgraded.goldAfter}`);
 
   // --- Final layout + errors -------------------------------------------------
   const layout = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
+    const invPanel = document.querySelector('#inventory-panel');
+    const quiet = {
+      paperdoll: document.querySelectorAll('.paperdoll-slot').length,
+      quickCards: document.querySelectorAll('.quick-slot-card').length,
+      invOverflow: invPanel.scrollWidth - invPanel.clientWidth
+    };
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
     const nav = document.querySelector('.tab-nav');
     const panel = document.querySelector('#dungeon-panel');
     const attack = document.querySelector('#dungeon-attack');
     const dpadButton = document.querySelector('.dpad__btn');
     const controls = document.querySelector('.dungeon-controls');
     return {
+      ...quiet,
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       navPosition: getComputedStyle(nav).position,
       touchAction: getComputedStyle(document.querySelector('.tab-nav__btn')).touchAction,
@@ -528,6 +678,8 @@ try {
   check("Attack button is a thumb-sized target", layout.attackHeight >= 44, `${layout.attackHeight}px`);
   check("DPad buttons are thumb-sized", layout.dpadSize >= 44, `${layout.dpadSize}px`);
   check("Dungeon controls stick above the home bar", layout.controlsPosition === "sticky");
+  check("Paperdoll and quick slots stay rendered", layout.paperdoll === 4 && layout.quickCards === 6, `${layout.paperdoll} slots / ${layout.quickCards} quick`);
+  check("Inventory panel never overflows horizontally", layout.invOverflow <= 0, `${layout.invOverflow}px`);
 
   // --- Desktop layout pass ---------------------------------------------------
   await send("Emulation.setDeviceMetricsOverride", {

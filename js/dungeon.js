@@ -1,4 +1,6 @@
 // dungeon.js — dungeon crawler, equipment stats, elements and difficulty balancing
+import { classStatDelta, classMaxMana } from "./classes.js";
+
 const icon = (content) =>
   `<svg class="shop-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${content}</svg>`;
 
@@ -251,7 +253,7 @@ export function upgradeCost(upgrade, level, mode = "normal") {
   return Math.round(base * (isHeroic(mode) ? 1.75 : 1));
 }
 
-export function heroStats(upgrades = {}, buff = {}) {
+export function heroStats(upgrades = {}, buff = {}, options = {}) {
   const weapon = Math.max(0, upgrades.weapon || 0);
   const armor = Math.max(0, upgrades.armor || 0);
   const strength = Math.max(0, upgrades.strength || 0);
@@ -261,17 +263,26 @@ export function heroStats(upgrades = {}, buff = {}) {
   const shield = Math.max(0, upgrades.shield || 0);
   const ring = Math.max(0, upgrades.ring || 0);
   const skin = buff && typeof buff === "object" ? buff : {};
+  const gear = options.gear && typeof options.gear === "object" ? options.gear : {};
+  const cls = options.cls || null;
+  const delta = classStatDelta(cls);
   const num = (value) => (Number.isFinite(value) ? value : 0);
+  const spellPower = wand * 0.05 + num(skin.elementPower) + num(gear.spellPower);
 
   return {
-    attack: 10 + weapon * 3 + strength * 2 + wand * 2 + ring,
-    defense: armor * 2 + shield * 2 + num(skin.defense),
-    maxHp: 50 + vitality * 10 + armor * 4 + amulet * 6 + num(skin.maxHp),
-    crit: Math.min(0.6, 0.05 + strength * 0.015 + wand * 0.02 + ring * 0.01 + num(skin.crit)),
-    block: Math.min(0.45, 0.03 + armor * 0.01 + shield * 0.02 + ring * 0.01 + num(skin.block)),
-    dodge: Math.min(0.45, 0.02 + num(skin.dodge)),
-    goldFind: 1 + amulet * 0.05 + num(skin.goldFind),
-    elementPower: wand * 0.05 + num(skin.elementPower),
+    attack: 10 + weapon * 3 + strength * 2 + wand * 2 + ring + num(delta.attack) + num(gear.attack),
+    defense: armor * 2 + shield * 2 + num(skin.defense) + num(delta.defense) + num(gear.defense),
+    maxHp: 50 + vitality * 10 + armor * 4 + amulet * 6 + num(skin.maxHp) + num(delta.maxHp) + num(gear.maxHp),
+    crit: Math.min(0.8, 0.05 + strength * 0.015 + wand * 0.02 + ring * 0.01 + num(skin.crit) + num(delta.crit) + num(gear.crit)),
+    block: Math.min(0.75, 0.03 + armor * 0.01 + shield * 0.02 + ring * 0.01 + num(skin.block) + num(delta.block) + num(gear.block)),
+    dodge: Math.min(0.6, 0.02 + num(skin.dodge) + num(delta.dodge) + num(gear.dodge)),
+    goldFind: 1 + amulet * 0.05 + num(skin.goldFind) + num(gear.goldFind),
+    elementPower: spellPower,
+    spellPower,
+    luck: num(gear.luck) + num(skin.luck),
+    healing: num(gear.healing) + num(skin.healing),
+    range: num(delta.range) || 1,
+    maxMana: classMaxMana(cls) + num(gear.mana) + num(skin.mana),
   };
 }
 
@@ -345,161 +356,5 @@ export function createRoomEnemy(floor, roomType, mode = "normal") {
     attack,
     reward,
     sprite: enemySprite(base.element, true),
-  };
-}
-
-export function attackDungeon(state, mode = "normal", buff = {}) {
-  const dungeon = state.dungeon;
-  const roomType = dungeon?.types?.[dungeon.pos] || "monster";
-  if (
-    (roomType !== "monster" && roomType !== "boss") ||
-    dungeon?.cleared?.[dungeon.pos]
-  ) {
-    return { type: "idle", roomType };
-  }
-
-  const stats = heroStats(state.upgrades, buff);
-  const floor = Math.max(1, dungeon.floor || 1);
-  const enemy = createRoomEnemy(floor, roomType, mode);
-  const rune = Array.isArray(state.runes) && state.runes.includes(state.rune) ? state.rune : null;
-  const multiplier = elementMultiplier(rune, enemy);
-  const effects = [];
-
-  let enemyHp = Number.isFinite(dungeon.enemyHp) && dungeon.enemyHp > 0 ? dungeon.enemyHp : enemy.hp;
-  enemyHp = Math.min(enemy.hp, enemyHp);
-  let burnDamage = 0;
-  if (dungeon.burn > 0) {
-    burnDamage = Math.max(1, Math.round(enemy.hp * 0.06 + stats.attack * 0.2));
-    enemyHp = Math.max(0, enemyHp - burnDamage);
-    dungeon.burn = Math.max(0, dungeon.burn - 1);
-    effects.push(`Brand −${burnDamage}`);
-  }
-
-  let damage = 0;
-  let crit = false;
-  let dodged = false;
-  if (enemyHp > 0) {
-    const critChance = stats.crit + (rune === "storm" ? 0.15 : 0);
-    crit = Math.random() < critChance;
-    damage = Math.round(stats.attack * multiplier * (rune ? 1 + stats.elementPower : 1));
-    if (crit) damage = Math.round(damage * 1.9);
-    dodged = Math.random() < enemy.dodge;
-    if (dodged) damage = 0;
-
-    if (damage > 0 && enemy.boss && state.boosterBoss > 0) {
-      damage = Math.round(damage * 1.5);
-      state.boosterBoss = Math.max(0, state.boosterBoss - 1);
-      effects.push("Boss-Trank +50%");
-    }
-
-    enemyHp = Math.max(0, enemyHp - damage);
-
-    if (damage > 0 && rune) {
-      if (rune === "fire") {
-        dungeon.burn = 2;
-        effects.push("Brand entfacht (2)");
-      } else if (rune === "frost" && Math.random() < 0.35) {
-        dungeon.frozen = true;
-        effects.push("Gegner eingefroren");
-      } else if (rune === "storm" && crit) {
-        effects.push("Sturm-Krit!");
-      } else if (rune === "shadow") {
-        const steal = Math.round(damage * 0.25);
-        dungeon.hp = Math.min(stats.maxHp, dungeon.hp + steal);
-        effects.push(`Lebensraub +${steal}`);
-      }
-    }
-  }
-
-  if (enemyHp <= 0) {
-    dungeon.cleared[dungeon.pos] = true;
-    dungeon.enemyHp = 0;
-    dungeon.burn = 0;
-    dungeon.frozen = false;
-    const gold = Math.round(enemy.reward * stats.goldFind);
-    state.gold += gold;
-    const heal = Math.round(stats.maxHp * 0.22);
-    dungeon.hp = Math.min(stats.maxHp, Math.max(1, dungeon.hp) + heal);
-    return {
-      type: enemy.boss ? (enemy.elite ? "elite" : "boss") : "monster",
-      roomType,
-      boss: enemy.boss,
-      elite: enemy.elite,
-      damage,
-      burnDamage,
-      crit,
-      dodged,
-      multiplier,
-      enemy,
-      gold,
-      heal,
-      heroHp: dungeon.hp,
-      slain: 1,
-      rune,
-      stats,
-      effects,
-    };
-  }
-
-  const frozen = Boolean(dungeon.frozen);
-  const heroDodged = Math.random() < stats.dodge;
-  const blocked = Math.random() < stats.block;
-  const enemyCrit = Math.random() < enemy.crit;
-  let counter = Math.max(1, Math.round(enemy.attack - stats.defense));
-  if (blocked) counter = Math.round(counter * 0.5);
-  if (enemyCrit) counter = Math.round(counter * 1.5);
-  if (frozen) {
-    counter = 0;
-    dungeon.frozen = false;
-    effects.push("Eingefroren: kein Konter");
-  }
-  if (heroDodged) {
-    counter = 0;
-    effects.push("Angriff ausgewichen");
-  }
-
-  dungeon.enemyHp = enemyHp;
-  dungeon.hp = Math.max(0, dungeon.hp - counter);
-
-  if (dungeon.hp <= 0) {
-    dungeon.hp = stats.maxHp;
-    dungeon.pos = 0;
-    dungeon.visited[0] = true;
-    dungeon.enemyHp = 0;
-    dungeon.burn = 0;
-    dungeon.frozen = false;
-    return {
-      type: "down",
-      roomType,
-      damage,
-      burnDamage,
-      crit,
-      dodged,
-      multiplier,
-      counter: 0,
-      enemy,
-      heroHp: dungeon.hp,
-      rune,
-      stats,
-      effects,
-    };
-  }
-
-  return {
-    type: "hit",
-    roomType,
-    damage,
-    burnDamage,
-    crit,
-    dodged,
-    multiplier,
-    counter,
-    blocked,
-    enemyCrit,
-    enemy,
-    heroHp: dungeon.hp,
-    rune,
-    stats,
-    effects,
   };
 }

@@ -25,7 +25,7 @@
       </div>
 
       <section class="player-card" aria-label="Spielerprofil">
-        <button class="avatar-wrap" id="btn-avatar" type="button" aria-label="Pixel Bazaar: Kosmetik öffnen">
+        <button class="avatar-wrap" id="btn-avatar" type="button" aria-label="Shop: Kosmetik öffnen">
           <span class="avatar-frame" id="avatar-frame" aria-hidden="true"></span>
           <span class="level-badge" data-stat="level">LV 1</span>
         </button>
@@ -45,7 +45,7 @@
               <span class="streak__value" data-stat="streak">0</span>
               <span class="streak__label">Serie</span>
             </span>
-            <button class="wallet" id="btn-shop" type="button" aria-label="Pixel Bazaar öffnen">
+            <button class="wallet" id="btn-shop" type="button" aria-label="Shop öffnen">
               <svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
                 <rect x="2" y="0" width="4" height="1" fill="#ffcd38" />
                 <rect x="1" y="1" width="6" height="6" fill="#ffcd38" />
@@ -58,7 +58,7 @@
                 <rect x="2" y="6" width="4" height="1" fill="#b8860b" />
               </svg>
               <span class="wallet__amount" data-gold>250</span>
-              <span class="wallet__label">Basar</span>
+              <span class="wallet__label">Shop</span>
             </button>
           </div>
 
@@ -103,7 +103,17 @@
           <rect x="3" y="5" width="6" height="2" fill="#7a4a1f"/>
           <rect x="5" y="7" width="2" height="2" fill="#ffcd38"/>
         </svg>
-        <span>Basar</span>
+        <span>Shop</span>
+      </button>
+      <button class="tab-nav__btn" type="button" data-tab="inventory">
+        <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+          <rect x="2" y="5" width="8" height="6" fill="#8a5a2b"/>
+          <rect x="3" y="3" width="6" height="2" fill="#a96a2c"/>
+          <rect x="5" y="2" width="2" height="2" fill="#ffcd38"/>
+          <rect x="3" y="7" width="6" height="1" fill="#ffcd38"/>
+          <rect x="5" y="8" width="2" height="2" fill="#101216"/>
+        </svg>
+        <span>🎒 Inventar</span>
       </button>
       <button class="tab-nav__btn" type="button" data-tab="settings">
         <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
@@ -347,6 +357,21 @@
               </div>
             </header>
 
+            <div class="class-select" id="class-select" hidden>
+              <p class="class-select__eyebrow">Held wählen</p>
+              <h3 class="class-select__title">Klasse vor dem Run</h3>
+              <p class="class-select__hint">Jede Klasse kämpft anders — Nahkampf, Distanzzauber, Meucheln oder Segen.</p>
+              <div class="class-grid" id="class-grid" role="group" aria-label="Heldenklasse wählen"></div>
+            </div>
+
+            <div class="class-badge" id="class-badge" hidden>
+              <span class="class-badge__icon" data-class="icon" aria-hidden="true">🗡️</span>
+              <span class="class-badge__name" data-class="name">Krieger</span>
+              <span class="class-badge__passive" data-class="passive">Schild-Passiv</span>
+              <button class="btn btn--ghost btn--sm" id="class-change" type="button">Klasse wechseln</button>
+            </div>
+
+            <div id="dungeon-body">
             <div class="dungeon-map-wrap">
               <div class="dungeon-map" id="dungeon-map" role="grid" aria-label="Etagenkarte"></div>
               <div class="map-legend" aria-hidden="true">
@@ -368,47 +393,38 @@
             </div>
 
             <div class="dungeon-arena" id="dungeon-arena" hidden>
-              <div class="fighter">
-                <div class="fighter__sprite" id="dungeon-hero-sprite" aria-hidden="true"></div>
-                <span class="fighter__name">Held</span>
-                <div class="mini-hp" role="progressbar" aria-label="Helden-Lebenspunkte" aria-valuemin="0" aria-valuemax="50" aria-valuenow="50">
-                  <div class="mini-hp__fill mini-hp__fill--hero" data-dungeon="hero-hp-fill"></div>
-                  <span class="mini-hp__label"><span data-dungeon="hero-hp">50</span>/<span data-dungeon="hero-maxhp">50</span> HP</span>
+              <div class="battle-bar">
+                <div class="battle-side">
+                  <span class="battle-side__name"><span data-dungeon="hero-class-icon" aria-hidden="true">🗡️</span> <span data-dungeon="hero-name">Held</span></span>
+                  <div class="mini-hp" role="progressbar" aria-label="Helden-Lebenspunkte" aria-valuemin="0" aria-valuemax="50" aria-valuenow="50">
+                    <div class="mini-hp__fill mini-hp__fill--hero" data-dungeon="hero-hp-fill"></div>
+                    <span class="mini-hp__label"><span data-dungeon="hero-hp">50</span>/<span data-dungeon="hero-maxhp">50</span> HP</span>
+                  </div>
+                  <span class="battle-side__meta">ANG <b data-dungeon="attack">10</b> · DEF <b data-dungeon="defense">0</b> · KRI <b data-dungeon="crit">5%</b> · AUS <b data-dungeon="dodge">2%</b> · MP <b data-dungeon="mana">0</b>/<b data-dungeon="mana-max">0</b></span>
                 </div>
-                <div class="fighter__element">
-                  <span class="element-dot" data-dungeon="hero-element-dot" aria-hidden="true"></span>
-                  <span data-dungeon="hero-element">Keine Rune</span>
-                </div>
-                <div class="fighter__stats">
-                  <span>ANG <b data-dungeon="attack">10</b></span>
-                  <span>DEF <b data-dungeon="defense">0</b></span>
-                  <span>KRI <b data-dungeon="crit">5%</b></span>
-                  <span>AUS <b data-dungeon="dodge">2%</b></span>
+                <div class="battle-side battle-side--enemy">
+                  <span class="battle-side__name"><span class="element-dot" data-dungeon="enemy-element-dot" aria-hidden="true"></span> <span data-dungeon="enemy-name">Gegner</span></span>
+                  <div class="mini-hp" role="progressbar" aria-label="Gegner-Lebenspunkte" aria-valuemin="0" aria-valuemax="28" aria-valuenow="28">
+                    <div class="mini-hp__fill mini-hp__fill--enemy" data-dungeon="enemy-hp-fill"></div>
+                    <span class="mini-hp__label"><span data-dungeon="enemy-hp">28</span>/<span data-dungeon="enemy-maxhp">28</span> HP</span>
+                  </div>
+                  <span class="battle-side__meta">ANG <b data-dungeon="enemy-attack">5</b> · AUS <b data-dungeon="enemy-dodge">8%</b> · Element <b data-dungeon="enemy-element">Frost</b> · schwach <b data-dungeon="enemy-weakness">Sturm</b></span>
                 </div>
               </div>
 
-              <div class="dungeon-vs" aria-hidden="true">VS</div>
+              <div class="battle-grid" id="battle-grid" role="grid" aria-label="Kampffeld"></div>
 
-              <div class="fighter fighter--enemy">
-                <div class="fighter__sprite" id="dungeon-enemy-sprite" data-element="fire"></div>
-                <span class="fighter__name" data-dungeon="enemy-name">Gegner</span>
-                <div class="mini-hp" role="progressbar" aria-label="Gegner-Lebenspunkte" aria-valuemin="0" aria-valuemax="28" aria-valuenow="28">
-                  <div class="mini-hp__fill mini-hp__fill--enemy" data-dungeon="enemy-hp-fill"></div>
-                  <span class="mini-hp__label"><span data-dungeon="enemy-hp">28</span>/<span data-dungeon="enemy-maxhp">28</span> HP</span>
-                </div>
-                <div class="fighter__element">
-                  <span class="element-dot" data-dungeon="enemy-element-dot" aria-hidden="true"></span>
-                  <span data-dungeon="enemy-element">Frost</span>
-                  <span class="element-weak">schwach: <b data-dungeon="enemy-weakness">Sturm</b></span>
-                </div>
-                <div class="fighter__stats">
-                  <span>ANG <b data-dungeon="enemy-attack">5</b></span>
-                  <span>AUS <b data-dungeon="enemy-dodge">8%</b></span>
-                </div>
+              <div class="battle-meta">
+                <span>Distanz <b data-dungeon="distance">6</b></span>
+                <span>Runde <b data-dungeon="round">1</b></span>
+                <span data-dungeon="turn">Dein Zug</span>
+                <span>Rune <span class="element-dot" data-dungeon="hero-element-dot" aria-hidden="true"></span> <b data-dungeon="hero-element">Keine Rune</b></span>
               </div>
 
               <div class="dungeon-damage" data-dungeon="damage" aria-hidden="true">-10</div>
             </div>
+
+            <div class="quick-bar" id="quick-bar" role="group" aria-label="Schnellslots"></div>
 
             <div class="rune-bar">
               <span class="rune-bar__label">Rune</span>
@@ -431,7 +447,9 @@
 
               <div class="dungeon-controls__actions">
                 <button class="btn btn--primary" id="dungeon-attack" type="button" disabled>Angriff</button>
-                <button class="btn btn--ghost" type="button" data-tab="shop" data-shop-category="equipment">Bazaar</button>
+                <button class="btn btn--ghost" id="dungeon-skill" type="button" disabled>Fertigkeit</button>
+                <button class="btn btn--ghost" id="dungeon-flee" type="button" disabled>Fliehen</button>
+                <button class="btn btn--ghost" type="button" data-tab="shop" data-shop-category="equipment">Shop</button>
                 <button class="btn btn--ghost" id="dungeon-reset" type="button">Run beenden</button>
               </div>
             </div>
@@ -442,6 +460,7 @@
             </div>
             <p class="dungeon-hint" data-dungeon="status">Bewege dich mit dem DPad. Kämpfe starten erst im Monster- oder Boss-Raum.</p>
             <p class="combat-log" data-dungeon="log" aria-live="polite">Erkunde die Etage und finde Truhen, Altäre und den Boss-Raum.</p>
+            </div>
           </article>
         </div>
       </section>
@@ -451,7 +470,7 @@
           <section class="panel shop-panel" data-panel="shop" aria-labelledby="shop-title">
             <header class="panel__head shop-head">
               <div class="shop-head__title">
-                <p class="shop-eyebrow">Pixel-Basar</p>
+                <p class="shop-eyebrow">Pixel-Shop</p>
                 <h2 class="panel__title" id="shop-title">Ausrüstung &amp; Tränke</h2>
               </div>
               <span class="wallet wallet--static" aria-label="Goldbestand im Shop">
@@ -484,6 +503,10 @@
                 <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="4" width="8" height="5" fill="#a78bfa"/><rect x="3" y="5" width="2" height="2" fill="#101216"/><rect x="7" y="5" width="2" height="2" fill="#101216"/><rect x="5" y="7" width="2" height="1" fill="#e94560"/><rect x="1" y="5" width="1" height="2" fill="#a78bfa"/><rect x="10" y="5" width="1" height="2" fill="#a78bfa"/></svg>
                 Kosmetik
               </button>
+              <button class="shop-tab" type="button" data-shop-tab="scroll" aria-pressed="false">
+                <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="1" width="8" height="10" fill="#e9e2c8"/><rect x="3" y="2" width="6" height="1" fill="#a7a08a"/><rect x="3" y="4" width="6" height="1" fill="#7a7464"/><rect x="3" y="6" width="4" height="1" fill="#7a7464"/><rect x="3" y="8" width="6" height="1" fill="#e94560"/><rect x="1" y="2" width="1" height="8" fill="#b8860b"/><rect x="10" y="2" width="1" height="8" fill="#b8860b"/></svg>
+                Schriftrollen
+              </button>
               <button class="shop-tab" type="button" data-shop-tab="reward" aria-pressed="false">
                 <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="2" width="8" height="2" fill="#ffcd38"/><rect x="3" y="4" width="7" height="2" fill="#e9a23b"/><rect x="4" y="6" width="5" height="2" fill="#ffcd38"/><rect x="5" y="8" width="3" height="2" fill="#e9a23b"/><rect x="6" y="10" width="1" height="1" fill="#ffcd38"/><rect x="4" y="4" width="1" height="1" fill="#e94560"/><rect x="7" y="5" width="1" height="1" fill="#e94560"/></svg>
                 Belohnungen
@@ -494,9 +517,46 @@
             <div class="shop-grid" id="shop-grid" aria-live="polite"></div>
 
             <footer class="shop-foot">
-              <p>Gold gibt's für Quests, Boss-Kills, Elite-Etagen und Idle-Loot. Preise steigen pro Stufe exponentiell.</p>
+              <p>Gold gibt's für Quests, Boss-Kills, Elite-Etagen und Idle-Loot. Skins, Tränke und Schriftrollen landen direkt im Inventar.</p>
             </footer>
           </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-inventory" data-tab-panel="inventory" hidden>
+        <div class="inventory-layout">
+          <section class="panel inventory-panel" id="inventory-panel" data-panel="inventory" aria-labelledby="inventory-title">
+            <header class="panel__head">
+              <div class="shop-head__title">
+                <p class="shop-eyebrow">Helden-Ausrüstung</p>
+                <h2 class="panel__title" id="inventory-title">🎒 Inventar</h2>
+              </div>
+              <span class="inventory-score" data-inventory="score">Ausrüstung 0</span>
+            </header>
+
+            <div class="paperdoll" id="paperdoll" aria-label="Ausrüstungs-Slots"></div>
+
+            <div class="quick-slots-wrap">
+              <p class="inventory-subtitle">Schnellslots im Kampf</p>
+              <div class="quick-slots" id="inventory-quick" role="group" aria-label="Trank- und Schriftrollen-Beutel"></div>
+            </div>
+
+            <p class="inventory-subtitle inventory-subtitle--bag">Beute-Beutel <span data-inventory="bag-count">0</span></p>
+            <div class="inventory-bag" id="inventory-bag" aria-live="polite"></div>
+          </section>
+
+          <aside class="panel inventory-side" aria-label="Inventar-Übersicht">
+            <header class="panel__head">
+              <h2 class="panel__title">Ausrüstung wirkt sofort</h2>
+            </header>
+            <div class="inventory-stats" id="inventory-stats"></div>
+            <ul class="inventory-tips">
+              <li><b>Ausrüsten</b> vergleicht Werte mit dem aktuellen Slot.</li>
+              <li><b>Upgraden</b> kostet Gold oder eine Schriftrolle der Veredelung.</li>
+              <li><b>Verkaufen</b> bringt Gold für neue Würfe im Dungeon.</li>
+              <li>Tränke und Schriftrollen gehören in die 6 Schnellslots.</li>
+            </ul>
+          </aside>
         </div>
       </section>
 
@@ -577,6 +637,10 @@
             <span>Streak-Rekord <b data-settings="bestStreak">0</b></span>
             <span>Boss-Level <b data-settings="bossLevel">1</b></span>
             <span>Runen <b data-settings="runes">0</b>/4</span>
+            <span>Klasse <b data-settings="heroClass">—</b></span>
+            <span>Items gefunden <b data-settings="items">0</b></span>
+            <span>Episch <b data-settings="epic">0</b></span>
+            <span>Legendär <b data-settings="legendary">0</b></span>
           </div>
 
           <input type="file" id="import-file" accept="application/json" hidden />
@@ -587,7 +651,7 @@
     <footer class="app-footer">
       <span>QuestLog</span>
       <span class="app-footer__dot" aria-hidden="true"></span>
-      <span>Made for heroes with to-do lists</span>
+      <span>Gemacht für Helden mit To-do-Listen</span>
     </footer>
   </div>
 
