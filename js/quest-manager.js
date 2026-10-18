@@ -1,5 +1,9 @@
 // quest-manager.js — Quest logic, XP, leveling, streaks
-const XP_VALUES = { easy: 10, medium: 25, hard: 50 };
+const XP_VALUES = { easy: 10, medium: 25, hard: 50, boss: 100 };
+
+export function xpValue(difficulty) {
+  return XP_VALUES[difficulty] || 10;
+}
 
 export function createQuest({ title, category, difficulty }) {
   return {
@@ -18,7 +22,7 @@ export function xpForLevel(level) {
 }
 
 export function applyCompletion(state, quest) {
-  let xpGain = XP_VALUES[quest.difficulty] || 10;
+  let xpGain = xpValue(quest.difficulty);
   // streak multiplier: +20% if streak >= 3
   if (state.streak >= 3) xpGain = Math.round(xpGain * 1.2);
   state.xp += xpGain;

@@ -2,59 +2,177 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0f0f1a" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1c23" />
+  <meta name="description" content="QuestLog — gamifizierte To-Do-Liste im 8-Bit-RPG-Look." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>QuestLog — Gamified To-Do</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <div id="app" data-theme="pixel">
     <header class="app-header">
-      <h1 class="app-title">QuestLog</h1>
-      <div class="stats">
-        <span data-stat="level">Lv 1</span>
-        <span data-stat="xp">XP: 0 / 100</span>
-        <span data-stat="streak">Streak: 0</span>
+      <div class="brand">
+        <p class="brand__eyebrow">8-Bit Productivity</p>
+        <h1 class="app-title">QuestLog</h1>
       </div>
+
+      <section class="player-card" aria-label="Spielerprofil">
+        <div class="avatar-wrap">
+          <div class="avatar-frame">
+            <svg class="avatar-sprite" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+              <!-- cape -->
+              <rect x="2" y="10" width="2" height="5" fill="#e94560" />
+              <rect x="12" y="10" width="2" height="5" fill="#e94560" />
+              <!-- helmet -->
+              <rect x="5" y="1" width="6" height="1" fill="#ffcd38" />
+              <rect x="4" y="2" width="8" height="1" fill="#ffcd38" />
+              <rect x="3" y="3" width="10" height="2" fill="#ffcd38" />
+              <rect x="3" y="5" width="1" height="3" fill="#b8860b" />
+              <rect x="12" y="5" width="1" height="3" fill="#b8860b" />
+              <!-- face -->
+              <rect x="4" y="5" width="8" height="5" fill="#f4c99a" />
+              <rect x="4" y="5" width="8" height="1" fill="#c99a6b" />
+              <!-- eyes -->
+              <rect x="5" y="7" width="2" height="1" fill="#101218" />
+              <rect x="9" y="7" width="2" height="1" fill="#101218" />
+              <!-- mouth -->
+              <rect x="7" y="9" width="2" height="1" fill="#a86b48" />
+              <!-- neck / shoulders -->
+              <rect x="6" y="10" width="4" height="1" fill="#f4c99a" />
+              <rect x="2" y="11" width="2" height="2" fill="#ffcd38" />
+              <rect x="12" y="11" width="2" height="2" fill="#ffcd38" />
+              <!-- tunic -->
+              <rect x="3" y="11" width="10" height="4" fill="#e94560" />
+              <!-- belt + gem -->
+              <rect x="4" y="13" width="8" height="1" fill="#ffcd38" />
+              <rect x="7" y="12" width="2" height="1" fill="#4eef91" />
+            </svg>
+          </div>
+          <span class="level-badge" data-stat="level">LV 1</span>
+        </div>
+
+        <div class="player-info">
+          <div class="player-row">
+            <span class="player-name">Hero</span>
+            <span class="streak" title="Tages-Streak">
+              <svg class="streak__icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+                <rect x="3" y="0" width="2" height="1" fill="#e94560" />
+                <rect x="2" y="1" width="4" height="1" fill="#e94560" />
+                <rect x="1" y="2" width="6" height="1" fill="#e94560" />
+                <rect x="1" y="3" width="6" height="3" fill="#e94560" />
+                <rect x="2" y="3" width="4" height="3" fill="#ffcd38" />
+                <rect x="3" y="4" width="2" height="2" fill="#fff3c4" />
+              </svg>
+              <span class="streak__value" data-stat="streak">0</span>
+              <span class="streak__label">Streak</span>
+            </span>
+          </div>
+
+          <div class="xp-bar" id="xp-bar" role="progressbar" aria-label="Erfahrungspunkte" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="xp-bar__fill" data-stat="xp-fill"></div>
+            <span class="xp-bar__label" data-stat="xp">0 / 100 XP</span>
+          </div>
+        </div>
+      </section>
     </header>
 
     <main>
       <section class="panel" data-panel="create">
-        <h2>Neue Quest</h2>
-        <form id="quest-form">
-          <input type="text" id="quest-title" placeholder="Quest-Titel" required />
-          <select id="quest-category">
-            <option value="daily">Daily</option>
-            <option value="active">Active</option>
-          </select>
-          <select id="quest-difficulty">
-            <option value="easy">Easy (+10)</option>
-            <option value="medium">Medium (+25)</option>
-            <option value="hard">Hard (+50)</option>
-          </select>
-          <button type="submit">Hinzufügen</button>
+        <header class="panel__head">
+          <h2 class="panel__title">Neue Quest</h2>
+          <span class="panel__hint">+XP verdienen</span>
+        </header>
+
+        <form id="quest-form" class="quest-form" autocomplete="off">
+          <div class="field field--grow">
+            <label for="quest-title">Quest-Titel</label>
+            <input type="text" id="quest-title" name="title" placeholder="z. B. 30 Min lernen" maxlength="80" required />
+          </div>
+          <div class="field">
+            <label for="quest-category">Kategorie</label>
+            <select id="quest-category" name="category">
+              <option value="daily">Daily</option>
+              <option value="active">Active</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="quest-difficulty">Schwierigkeit</label>
+            <select id="quest-difficulty" name="difficulty">
+              <option value="easy">Easy · 10 XP</option>
+              <option value="medium">Medium · 25 XP</option>
+              <option value="hard">Hard · 50 XP</option>
+              <option value="boss">Boss · 100 XP</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn--primary quest-form__submit">
+            <span class="btn__icon" aria-hidden="true">+</span>
+            Quest starten
+          </button>
         </form>
       </section>
 
       <section class="panel" data-panel="daily">
-        <h2>Daily Quests</h2>
-        <ul id="daily-list" class="quest-list"></ul>
+        <header class="panel__head">
+          <h2 class="panel__title">Daily Quests</h2>
+          <span class="panel__count" data-count="daily" aria-label="Anzahl Daily Quests">0</span>
+        </header>
+        <ul id="daily-list" class="quest-list" aria-label="Daily Quests"></ul>
       </section>
 
       <section class="panel" data-panel="active">
-        <h2>Active Quests</h2>
-        <ul id="active-list" class="quest-list"></ul>
+        <header class="panel__head">
+          <h2 class="panel__title">Active Quests</h2>
+          <span class="panel__count" data-count="active" aria-label="Anzahl Active Quests">0</span>
+        </header>
+        <ul id="active-list" class="quest-list" aria-label="Active Quests"></ul>
       </section>
 
       <section class="panel" data-panel="settings">
-        <h2>Einstellungen</h2>
-        <button id="btn-export">JSON Export</button>
-        <button id="btn-import">JSON Import</button>
-        <input type="file" id="import-file" accept="application/json" hidden />
+        <header class="panel__head">
+          <h2 class="panel__title">Einstellungen</h2>
+          <span class="panel__hint">Lokaler Save</span>
+        </header>
+
+        <div class="settings-actions">
+          <button type="button" class="btn btn--ghost" id="btn-export">
+            <span class="btn__icon" aria-hidden="true">↓</span>
+            Export
+          </button>
+          <button type="button" class="btn btn--ghost" id="btn-import">
+            <span class="btn__icon" aria-hidden="true">↑</span>
+            Import
+          </button>
+          <p class="settings-note">Dein Fortschritt bleibt auf diesem Gerät. Exportiere regelmäßig ein Backup.</p>
+          <input type="file" id="import-file" accept="application/json" hidden />
+        </div>
       </section>
     </main>
+
+    <footer class="app-footer">
+      <span>QuestLog</span>
+      <span class="app-footer__dot" aria-hidden="true"></span>
+      <span>Made for heroes with to-do lists</span>
+    </footer>
   </div>
+
+  <div class="levelup-banner" id="levelup-banner" role="status" aria-live="polite" hidden>
+    <div class="levelup-banner__inner">
+      <p class="levelup-banner__kicker">★ Level Up ★</p>
+      <p class="levelup-banner__level" data-levelup-level>2</p>
+      <p class="levelup-banner__text">Neue Stufe erreicht!</p>
+    </div>
+  </div>
+
+  <noscript>
+    <p class="noscript">QuestLog braucht JavaScript, um Quests und XP zu speichern.</p>
+  </noscript>
 
   <script type="module" src="js/app.js"></script>
 </body>

@@ -1,4 +1,4 @@
-const CACHE = "questlog-v1";
+const CACHE = "questlog-v2";
 const ASSETS = [
   "/", "/index.html", "/manifest.json",
   "/css/styles.css",
