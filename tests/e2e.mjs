@@ -279,29 +279,70 @@ try {
   check("Compact mobile header", structure.headerHeight < 170, `${structure.headerHeight}px`);
   check("No horizontal mobile overflow", structure.overflow <= 0, `${structure.overflow}px`);
 
-  // --- Class selection -------------------------------------------------------
+  // --- Visual hero select ----------------------------------------------------
   const classSelect = await evaluate(`(() => {
     document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    const cards = [...document.querySelectorAll('.class-card')];
     return {
-      cards: document.querySelectorAll('.class-card').length,
+      cards: cards.length,
+      portraits: cards.filter((card) => card.querySelector('.class-card__portrait svg')).length,
+      squareCards: cards.every((card) => {
+        const box = card.querySelector('.class-card__portrait').getBoundingClientRect();
+        return box.width > 40 && Math.abs(box.width - box.height) <= 2;
+      }),
+      selectOverflow: document.querySelector('#class-select').scrollWidth - document.querySelector('#class-select').clientWidth,
       selectVisible: !document.querySelector('#class-select').hidden,
-      bodyHidden: document.querySelector('#dungeon-body').hidden
+      bodyHidden: document.querySelector('#dungeon-body').hidden,
+      detailName: document.querySelector('.hero-detail__name')?.textContent.trim() || '',
+      detailBuffs: document.querySelectorAll('.hero-detail__buffs li').length
     };
   })()`);
-  check("Class selection offers all four heroes", classSelect.cards === 4, String(classSelect.cards));
-  check("Dungeon stays locked until a class is chosen", classSelect.selectVisible && classSelect.bodyHidden);
+  check("Hero select offers all five classes", classSelect.cards === 5, String(classSelect.cards));
+  check("Every class is a square pixel card, not a text link", classSelect.portraits === 5 && classSelect.squareCards, String(classSelect.portraits));
+  check("Hero select fits the mobile screen", classSelect.selectOverflow <= 0, `${classSelect.selectOverflow}px`);
+  check("Dungeon stays locked until a hero is chosen", classSelect.selectVisible && classSelect.bodyHidden);
+  check(
+    "A preselected hero shows its name, description and start buffs",
+    classSelect.detailName.length > 0 && classSelect.detailBuffs >= 3,
+    `${classSelect.detailName} · ${classSelect.detailBuffs} buffs`
+  );
 
   const classChosen = await evaluate(`(() => {
     document.querySelector('.class-card[data-class-id="mage"]').click();
+    const afterClick = {
+      selected: document.querySelector('.class-card.is-selected')?.dataset.classId || '',
+      marked: document.querySelectorAll('.class-card.is-selected').length,
+      name: document.querySelector('.hero-detail__name')?.textContent.trim() || '',
+      skill: document.querySelector('.hero-detail__skill-name')?.textContent.trim() || '',
+      skillDesc: document.querySelector('.hero-detail__skill-desc')?.textContent.trim() || '',
+      bodyHidden: document.querySelector('#dungeon-body').hidden,
+      selectHidden: document.querySelector('#class-select').hidden
+    };
+    document.querySelector('[data-class-start="mage"]').click();
     return {
+      ...afterClick,
+      lockedBodyHidden: afterClick.bodyHidden,
+      lockedSelectHidden: afterClick.selectHidden,
       bodyHidden: document.querySelector('#dungeon-body').hidden,
       selectHidden: document.querySelector('#class-select').hidden,
       badge: document.querySelector('#class-badge').textContent.trim(),
-      skill: document.querySelector('#dungeon-skill').textContent.trim()
+      badgeSprite: !!document.querySelector('#class-badge .class-sprite'),
+      skillButton: document.querySelector('#dungeon-skill').textContent.trim()
     };
   })()`);
-  check("Picking a class unlocks the run", !classChosen.bodyHidden && classChosen.selectHidden, classChosen.badge);
-  check("Class skill is wired to the chosen hero", classChosen.skill.includes("Blitz"), classChosen.skill);
+  check(
+    "Clicking a portrait marks it and reveals its class details",
+    classChosen.selected === "mage" && classChosen.marked === 1 && classChosen.name === "Magier" && classChosen.skill.includes("Blitz"),
+    `${classChosen.name} · ${classChosen.skill}`
+  );
+  check(
+    "The class detail stays open until the run is confirmed",
+    classChosen.lockedBodyHidden && !classChosen.lockedSelectHidden,
+    classChosen.skillDesc
+  );
+  check("Starting the run unlocks the dungeon", !classChosen.bodyHidden && classChosen.selectHidden, classChosen.badge);
+  check("Class badge uses the selected pixel portrait", classChosen.badgeSprite, classChosen.badge);
+  check("Class skill is wired to the chosen hero", classChosen.skillButton.includes("Blitz"), classChosen.skillButton);
 
   // --- Shop ------------------------------------------------------------------
   const shop = await evaluate(`(() => {
@@ -391,13 +432,25 @@ try {
       heroToken: Boolean(heroToken),
       enemyToken: Boolean(document.querySelector('#dungeon-enemy-sprite')),
       attackLabel: document.querySelector('#dungeon-attack').textContent.trim(),
-      heroHp: Number(document.querySelector('[data-dungeon="hero-hp"]').textContent)
+      heroHp: Number(document.querySelector('[data-dungeon="hero-hp"]').textContent),
+      tiles: document.querySelectorAll('.dungeon-tiles .tile').length,
+      walls: document.querySelectorAll('.tile--wall').length,
+      corridors: document.querySelectorAll('.tile--corridor').length,
+      fogRooms: document.querySelectorAll('.tile--room.is-fog').length,
+      roomSprites: document.querySelectorAll('.tile--room .tile-sprite').length,
+      mapHero: !!document.querySelector('.map-hero .class-sprite'),
+      logLines: document.querySelectorAll('.battle-log__line').length,
+      logText: document.querySelector('#battle-log').textContent.trim()
     };
   })()`);
   check("Moving with the DPad enters the next room", explore.currentIndex === "1", String(explore.currentIndex));
   check("Monster room opens the combat arena", explore.roomType === "monster" && !explore.arenaHidden, explore.enemyName);
   check("Tactical grid spawns hero and enemy tokens", explore.gridCells === 35 && explore.heroToken && explore.enemyToken, `${explore.gridCells} tiles`);
   check("Ranged hero can attack on distance", explore.attackLabel.includes("Fernkampf"), explore.attackLabel);
+  check("Dungeon renders a real tile map with walls and corridors", explore.tiles === 49 && explore.walls > 20 && explore.corridors === 12, `${explore.tiles} tiles · ${explore.walls} walls · ${explore.corridors} corridors`);
+  check("Unexplored rooms stay behind fog of war", explore.fogRooms >= 4 && explore.roomSprites >= 3, `${explore.fogRooms} fogged rooms · ${explore.roomSprites} sprites`);
+  check("The hero is drawn on the tile map", explore.mapHero);
+  check("Battle log prints a retro terminal log", explore.logLines >= 1 && explore.logText.includes("erscheint"), explore.logLines + " lines");
 
   const battleMove = await evaluate(`(() => {
     const before = document.querySelector('[data-dungeon="distance"]').textContent.trim();
@@ -406,10 +459,17 @@ try {
     return {
       before,
       after: document.querySelector('[data-dungeon="distance"]').textContent.trim(),
-      column: heroToken?.style.gridColumn || ""
+      column: heroToken?.style.gridColumn || "",
+      log: document.querySelector('#battle-log').textContent.trim(),
+      lines: document.querySelectorAll('.battle-log__line').length
     };
   })()`);
   check("DPad moves the hero on the battle grid", battleMove.after !== battleMove.before, `${battleMove.before} -> ${battleMove.after}`);
+  check(
+    "Battle log records every action in the terminal",
+    battleMove.lines >= 2 && /bewegst dich/i.test(battleMove.log),
+    `${battleMove.lines} lines`
+  );
 
   // --- Shattered map + elite floor + elemental sprite -----------------------
   await evaluate(stateExpression(`(state) => {
@@ -577,13 +637,22 @@ try {
   check("UI reflects persisted floor", persisted.uiFloor === "1", persisted.uiFloor);
   check("Chosen hero class survives reload", persisted.heroClass === "mage", persisted.heroClass);
 
-  // --- Inventory paperdoll ---------------------------------------------------
+  // --- Grid inventory --------------------------------------------------------
   const inventory = await evaluate(`(() => {
     document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
     const before = {
       slots: document.querySelectorAll('.paperdoll-slot').length,
       quick: document.querySelectorAll('.quick-slot-card').length,
-      bag: document.querySelectorAll('.item-card').length
+      gridSlots: document.querySelectorAll('.bag-grid .item-tile').length,
+      bagSprites: [...document.querySelectorAll('.bag-grid .item-tile[data-inv-id]')].every((tile) => tile.querySelector('svg')),
+      squareSlots: [...document.querySelectorAll('.paperdoll-slot')].every((slot) => {
+        const box = slot.getBoundingClientRect();
+        return Math.abs(box.width - box.height) <= 2;
+      }),
+      squareTiles: [...document.querySelectorAll('.bag-grid .item-tile')].every((tile) => {
+        const box = tile.getBoundingClientRect();
+        return box.width > 38 && Math.abs(box.width - box.height) <= 2;
+      })
     };
     const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
     state.inventory.items.push({
@@ -604,39 +673,60 @@ try {
     localStorage.setItem('questlog_state_v1', JSON.stringify(state));
     return before;
   })()`);
-  check("Paperdoll shows four equipment slots", inventory.slots === 4, String(inventory.slots));
+  check("Paperdoll shows four square equipment slots", inventory.slots === 4 && inventory.squareSlots, String(inventory.slots));
   check("Inventory offers six quick slots", inventory.quick === 6, String(inventory.quick));
+  check("Bag renders a 24-slot grid of square tiles", inventory.gridSlots === 24 && inventory.squareTiles, String(inventory.gridSlots));
+  check("Every bag item is drawn as a pixel sprite", inventory.bagSprites);
 
   await navigate(`/index.html?e2e=${Date.now()}`);
   const equipped = await evaluate(`(() => {
     document.querySelector('.tab-nav__btn[data-tab="inventory"]').click();
-    const findCard = () => [...document.querySelectorAll('.item-card')]
-      .find((card) => card.querySelector('.item-card__name')?.textContent.trim() === 'E2E-Klinge');
-    const card = findCard();
-    const hasCompare = Boolean(card?.querySelector('.item-card__compare'));
-    const compareText = card?.querySelector('.item-card__compare')?.textContent.trim() || '';
-    card.querySelector('[data-inv-action="equip"]').click();
+    const findTile = () => [...document.querySelectorAll('.item-tile[data-inv-id]')]
+      .find((tile) => (tile.getAttribute('aria-label') || '').includes('E2E-Klinge'));
+    const tile = findTile();
+    const tileSprite = Boolean(tile?.querySelector('svg'));
+    const draggable = tile?.draggable === true;
+    tile.click();
+    const inspector = document.querySelector('#item-inspector');
+    const hasCompare = Boolean(inspector.querySelector('.item-card__compare'));
+    const compareText = inspector.querySelector('.item-card__compare')?.textContent.trim() || '';
+    inspector.querySelector('[data-inv-action="equip"]').click();
     const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
     return {
-      name: card?.querySelector('.item-card__name')?.textContent.trim(),
+      name: document.querySelector('#item-inspector .item-card__name')?.textContent.trim(),
+      tileSprite,
+      draggable,
+      dropZones: document.querySelectorAll('[data-drop-slot]').length,
       hasCompare,
       compareText,
       equippedId: state.inventory.equipped.weapon,
       filled: document.querySelectorAll('.paperdoll-slot.is-filled').length,
+      slotSprite: Boolean(document.querySelector('.paperdoll-slot[data-slot="weapon"] .item-sprite')),
       stats: document.querySelector('#inventory-stats').textContent.trim().length,
       score: document.querySelector('[data-inventory="score"]').textContent.trim()
     };
   })()`);
-  check("Looted gear shows a stat comparison", equipped.hasCompare && equipped.name === "E2E-Klinge", equipped.compareText);
-  check("Equipping fills the paperdoll", equipped.equippedId === "e2e_sword" && equipped.filled >= 1, equipped.equippedId);
+  check("Loot in the bag is a pixel sprite tile", equipped.tileSprite && equipped.draggable, `${equipped.name}`);
+  check("Tile clicks open the item inspector with a stat comparison", equipped.hasCompare && equipped.name === "E2E-Klinge", equipped.compareText);
+  check("Equipping fills the paperdoll with a sprite", equipped.equippedId === "e2e_sword" && equipped.filled >= 1 && equipped.slotSprite, equipped.equippedId);
   check("Inventory derives hero stats and gear score", equipped.stats > 0 && /Ausrüstung \d+/.test(equipped.score), equipped.score);
+  check("Drag & drop targets exist for every slot", equipped.dropZones >= 10, String(equipped.dropZones));
+
+  const clickEquip = await evaluate(`(() => {
+    const inspector = document.querySelector('#item-inspector');
+    inspector.querySelector('[data-inv-action="unequip"]').click();
+    const tile = [...document.querySelectorAll('.item-tile[data-inv-id]')]
+      .find((entry) => (entry.getAttribute('aria-label') || '').includes('E2E-Klinge'));
+    tile.click();
+    document.querySelector('.paperdoll-slot[data-slot="weapon"]').click();
+    const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    return { equippedId: state.inventory.equipped.weapon, filled: document.querySelectorAll('.paperdoll-slot.is-filled').length };
+  })()`);
+  check("Click-to-equip works directly on the paperdoll slot", clickEquip.equippedId === "e2e_sword" && clickEquip.filled >= 1, clickEquip.equippedId);
 
   const upgraded = await evaluate(`(() => {
     const goldBefore = Number(document.querySelector('[data-gold]').textContent);
-    document.querySelector('.paperdoll-slot[data-slot="weapon"] [data-inv-action="unequip"]').click();
-    const card = [...document.querySelectorAll('.item-card')]
-      .find((entry) => entry.querySelector('.item-card__name')?.textContent.trim() === 'E2E-Klinge');
-    card.querySelector('[data-inv-action="upgrade"]').click();
+    document.querySelector('#item-inspector [data-inv-action="upgrade"]').click();
     const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
     const item = state.inventory.items.find((entry) => entry.id === "e2e_sword");
     return { level: item?.level || 0, goldBefore, goldAfter: state.gold };

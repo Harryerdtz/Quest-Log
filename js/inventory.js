@@ -1,12 +1,22 @@
 // inventory.js — paperdoll equipment, quick slots, upgrade and sell rules
-import { EQUIPMENT_SLOTS, applyUpgrade, itemPower, sellValue, upgradeCost, rarityMeta } from "./items.js";
+import {
+  EQUIPMENT_SLOTS,
+  SLOT_ICONS,
+  applyUpgrade,
+  itemPower,
+  sellValue,
+  upgradeCost,
+  rarityMeta,
+} from "./items.js";
 
 export const SLOT_META = {
-  weapon: { id: "weapon", label: "Waffe", icon: "🗡️", hint: "Haupt-Hand" },
-  offhand: { id: "offhand", label: "Nebenhand", icon: "🛡️", hint: "Schild oder Zauberstab" },
-  armor: { id: "armor", label: "Rüstung", icon: "🥋", hint: "Körper" },
-  trinket: { id: "trinket", label: "Ring / Amulett", icon: "💍", hint: "Schmuck" },
+  weapon: { id: "weapon", label: "Hauptwaffe", icon: SLOT_ICONS.weapon, hint: "Haupt-Hand" },
+  offhand: { id: "offhand", label: "Nebenhand", icon: SLOT_ICONS.offhand, hint: "Schild oder Zauberstab" },
+  armor: { id: "armor", label: "Rüstung", icon: SLOT_ICONS.armor, hint: "Körper" },
+  trinket: { id: "trinket", label: "Ring / Amulett", icon: SLOT_ICONS.trinket, hint: "Schmuck" },
 };
+
+export const QUICK_ICON = SLOT_ICONS.quick;
 
 export const SLOT_ORDER = [...EQUIPMENT_SLOTS];
 export const QUICK_SLOT_COUNT = 6;

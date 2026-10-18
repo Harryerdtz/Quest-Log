@@ -2,11 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as C from "../../js/classes.js";
 
-test("all four requested classes exist with a skill", () => {
-  assert.deepEqual(C.CLASS_ORDER, ["warrior", "mage", "rogue", "cleric"]);
+test("all five requested classes exist with a skill", () => {
+  assert.deepEqual(C.CLASS_ORDER, ["warrior", "mage", "rogue", "huntress", "cleric"]);
   C.classList().forEach((cls) => {
     assert.ok(cls.name);
-    assert.ok(cls.icon);
+    assert.match(cls.sprite, /<svg/);
+    assert.ok(cls.tagline);
+    assert.ok(cls.desc.length > 30);
+    assert.ok(cls.buffs.length >= 3);
     assert.ok(cls.passive);
     assert.ok(cls.skill && cls.skill.name && cls.skill.desc);
     assert.ok(cls.maxHp > 0);

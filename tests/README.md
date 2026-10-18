@@ -12,12 +12,12 @@ npm run test:all  # both
 
 | File | Coverage |
 | --- | --- |
-| `classes.test.mjs` | four hero classes, passives, stat deltas, skills and mana |
+| `classes.test.mjs` | five hero classes with pixel sprites, passives, stat deltas, skills and mana |
 | `battle.test.mjs` | turn-based 7×5 grid, movement/obstacles, melee vs ranged, skills, consumables, defeat/flee |
 | `items.test.mjs` | rarity tiers and scaling, drop tables, depth/elite luck, upgrades, sell values, comparisons |
 | `inventory.test.mjs` | paperdoll equip/swap/unequip, six quick slots, gold/scroll upgrades, selling, gear buffs, save normalization |
 | `dungeon.test.mjs` | upgrade costs, class/gear stat stacking, elite guardians, element weaknesses, sprites, heroic scaling |
-| `map.test.mjs` | 3×3–5×5 floor generation, room types, adjacency movement, fog of war, map repair |
+| `map.test.mjs` | 3×3–5×5 floor generation, room types, adjacency movement, fog of war, tile map with walls/corridors, room sprites, map repair |
 | `shop.test.mjs` | class skins, boosters, scrolls, heroic 1.75× pricing, purchases and equipping |
 | `raid.test.mjs` | boss HP/rewards, quest gold, idle-loot pacing/cap/collection |
 | `storage.test.mjs` | LocalStorage roundtrip and corrupt-save handling |
@@ -27,12 +27,13 @@ npm run test:all  # both
 
 The script starts its own static server and a headless Chrome instance, then drives the real UI:
 
-- five main tabs including **🎒 Inventar**, no Basar naming, no native selects
-- class selection gate, all four class cards, class skill wiring and persistence
-- tactical battle grid: 35 tiles, hero/enemy tokens, DPad grid movement, melee/ranged labels
+- five main tabs including **Inventar**, no Basar naming, no native selects
+- visual hero select: five square pixel cards, selected-card detail (name, description, buffs, skill), start confirmation, class skill wiring and persistence
+- dungeon tile map: 49 tiles with walls, 12 corridors, fogged rooms, room sprites and the hero token
+- tactical battle grid: 35 tiles, hero/enemy tokens, DPad grid movement, melee/ranged labels, retro terminal battle log
+- inventory grid: 4 square paperdoll slots, 6 quick slots, 24-slot bag of pixel sprites, item inspector with comparison, click-to-equip on the paperdoll, drag & drop zones and gold upgrades
 - elemental elite sprite/crown, daily elite bonus (only once per day)
 - run reset (with confirmation) that keeps gold and deepest floor
-- inventory paperdoll (4 slots / 6 quick slots), dropped gear comparison, equipping and gold upgrades
 - avatar purchase + equip, two-column mobile shop, Schriftrollen tab
 - LocalStorage persistence across reloads
 - mobile overflow, sticky navigation, touch-action, thumb-sized DPad/attack controls and iOS zoom guard

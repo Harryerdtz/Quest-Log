@@ -12,6 +12,11 @@ import {
   isVisible,
   normalizeDungeon,
   roomTypesRemaining,
+  buildTileMap,
+  roomTile,
+  tileMapSize,
+  tileMapSummary,
+  ROOM_SPRITES,
 } from "../../js/map.js";
 
 function seeded(seed = 7) {
@@ -84,6 +89,58 @@ test("normalization repairs missing or invalid maps", () => {
   const repaired = normalizeDungeon({ size: 9, types: [] }, 2);
   assert.equal(repaired.size, 3);
   assert.equal(repaired.types.length, 9);
+});
+
+test("tile map builds walls, corridors and one tile per room", () => {
+  const floor = createFloor(1, seeded());
+  const map = buildTileMap(floor);
+  assert.equal(tileMapSize(3), 7);
+  assert.equal(map.dim, 7);
+  assert.equal(map.tiles.length, 49);
+
+  const rooms = map.tiles.filter((tile) => tile.kind === "room");
+  const corridors = map.tiles.filter((tile) => tile.kind === "corridor");
+  const walls = map.tiles.filter((tile) => tile.kind === "wall");
+  assert.equal(rooms.length, 9);
+  assert.equal(corridors.length, 12);
+  assert.equal(walls.length, 28);
+  rooms.forEach((tile) => assert.ok(ROOM_TYPES[tile.roomType]));
+  corridors.forEach((tile) => {
+    assert.equal(tile.link.length, 2);
+    assert.notEqual(tile.link[0], tile.link[1]);
+  });
+});
+
+test("tile map reveals visited rooms and hides unexplored ones", () => {
+  const floor = createFloor(1, seeded());
+  const summary = tileMapSummary(floor);
+  assert.equal(summary.rooms, 9);
+  assert.ok(summary.fog >= 4, `${summary.fog} fogged tiles`);
+
+  const start = roomTile(floor, 0);
+  assert.deepEqual(start, { x: 1, y: 1 });
+  const map = buildTileMap(floor);
+  const startTile = map.tiles.find((tile) => tile.index === 0);
+  assert.equal(startTile.seen, true);
+  assert.equal(startTile.lit, true);
+
+  const bossTile = map.tiles.find((tile) => tile.index === 8);
+  assert.equal(bossTile.seen, false);
+  assert.equal(bossTile.lit, false);
+
+  floor.pos = 1;
+  floor.visited[1] = true;
+  const advanced = buildTileMap(floor);
+  const revealed = advanced.tiles.find((tile) => tile.index === 1);
+  assert.equal(revealed.lit, true);
+  assert.ok(advanced.tiles.filter((tile) => tile.seen).length > map.tiles.filter((tile) => tile.seen).length);
+});
+
+test("every room type has a pixel sprite", () => {
+  Object.keys(ROOM_TYPES).forEach((type) => {
+    assert.match(ROOM_SPRITES[type], /<svg/);
+    assert.match(ROOM_SPRITES[type], /<rect/);
+  });
 });
 
 test("cleared rooms are removed from the remaining count", () => {

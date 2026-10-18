@@ -113,7 +113,7 @@
           <rect x="3" y="7" width="6" height="1" fill="#ffcd38"/>
           <rect x="5" y="8" width="2" height="2" fill="#101216"/>
         </svg>
-        <span>🎒 Inventar</span>
+        <span>Inventar</span>
       </button>
       <button class="tab-nav__btn" type="button" data-tab="settings">
         <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
@@ -357,15 +357,15 @@
               </div>
             </header>
 
-            <div class="class-select" id="class-select" hidden>
-              <p class="class-select__eyebrow">Held wählen</p>
-              <h3 class="class-select__title">Klasse vor dem Run</h3>
-              <p class="class-select__hint">Jede Klasse kämpft anders — Nahkampf, Distanzzauber, Meucheln oder Segen.</p>
-              <div class="class-grid" id="class-grid" role="group" aria-label="Heldenklasse wählen"></div>
+            <div class="hero-select" id="class-select" hidden>
+              <p class="hero-select__eyebrow">// Neue Helden</p>
+              <h3 class="hero-select__title" id="hero-select-title">Wähle deinen Helden</h3>
+              <div class="class-grid" id="class-grid" role="radiogroup" aria-labelledby="hero-select-title" aria-label="Heldenklasse wählen"></div>
+              <div class="hero-detail" id="class-detail" aria-live="polite"></div>
             </div>
 
             <div class="class-badge" id="class-badge" hidden>
-              <span class="class-badge__icon" data-class="icon" aria-hidden="true">🗡️</span>
+              <span class="class-badge__icon" data-class="icon" aria-hidden="true"></span>
               <span class="class-badge__name" data-class="name">Krieger</span>
               <span class="class-badge__passive" data-class="passive">Schild-Passiv</span>
               <button class="btn btn--ghost btn--sm" id="class-change" type="button">Klasse wechseln</button>
@@ -373,13 +373,12 @@
 
             <div id="dungeon-body">
             <div class="dungeon-map-wrap">
-              <div class="dungeon-map" id="dungeon-map" role="grid" aria-label="Etagenkarte"></div>
+              <div class="dungeon-tiles" id="dungeon-map" role="grid" aria-label="Etagenkarte"></div>
               <div class="map-legend" aria-hidden="true">
-                <span><b class="map-legend__glyph">⚔</b> Monster</span>
-                <span><b class="map-legend__glyph">▣</b> Beute</span>
-                <span><b class="map-legend__glyph">⚑</b> Händler</span>
-                <span><b class="map-legend__glyph">✦</b> Altar</span>
-                <span><b class="map-legend__glyph">☠</b> Boss</span>
+                <span><b class="map-legend__swatch map-legend__swatch--wall"></b> Wand</span>
+                <span><b class="map-legend__swatch map-legend__swatch--floor"></b> Boden</span>
+                <span><b class="map-legend__swatch map-legend__swatch--fog"></b> Nebel</span>
+                <span><b class="map-legend__swatch map-legend__swatch--hero"></b> Held</span>
               </div>
             </div>
 
@@ -395,7 +394,7 @@
             <div class="dungeon-arena" id="dungeon-arena" hidden>
               <div class="battle-bar">
                 <div class="battle-side">
-                  <span class="battle-side__name"><span data-dungeon="hero-class-icon" aria-hidden="true">🗡️</span> <span data-dungeon="hero-name">Held</span></span>
+                  <span class="battle-side__name"><span class="battle-side__avatar" data-dungeon="hero-class-icon" aria-hidden="true"></span> <span data-dungeon="hero-name">Held</span></span>
                   <div class="mini-hp" role="progressbar" aria-label="Helden-Lebenspunkte" aria-valuemin="0" aria-valuemax="50" aria-valuenow="50">
                     <div class="mini-hp__fill mini-hp__fill--hero" data-dungeon="hero-hp-fill"></div>
                     <span class="mini-hp__label"><span data-dungeon="hero-hp">50</span>/<span data-dungeon="hero-maxhp">50</span> HP</span>
@@ -413,6 +412,11 @@
               </div>
 
               <div class="battle-grid" id="battle-grid" role="grid" aria-label="Kampffeld"></div>
+
+              <div class="battle-log" aria-label="Kampf-Log">
+                <p class="battle-log__head">// KAMPF-LOG</p>
+                <div class="battle-log__lines" id="battle-log" role="log" aria-live="polite"></div>
+              </div>
 
               <div class="battle-meta">
                 <span>Distanz <b data-dungeon="distance">6</b></span>
@@ -528,21 +532,28 @@
           <section class="panel inventory-panel" id="inventory-panel" data-panel="inventory" aria-labelledby="inventory-title">
             <header class="panel__head">
               <div class="shop-head__title">
-                <p class="shop-eyebrow">Helden-Ausrüstung</p>
-                <h2 class="panel__title" id="inventory-title">🎒 Inventar</h2>
+                <p class="shop-eyebrow">Shattered-Pixel-Inventar</p>
+                <h2 class="panel__title" id="inventory-title">Inventar</h2>
               </div>
               <span class="inventory-score" data-inventory="score">Ausrüstung 0</span>
             </header>
 
-            <div class="paperdoll" id="paperdoll" aria-label="Ausrüstungs-Slots"></div>
+            <div class="inventory-stage">
+              <div class="inventory-col inventory-col--gear">
+                <p class="inventory-subtitle">Ausrüstung</p>
+                <div class="paperdoll" id="paperdoll" aria-label="Ausrüstungs-Slots"></div>
 
-            <div class="quick-slots-wrap">
-              <p class="inventory-subtitle">Schnellslots im Kampf</p>
-              <div class="quick-slots" id="inventory-quick" role="group" aria-label="Trank- und Schriftrollen-Beutel"></div>
+                <p class="inventory-subtitle">Schnelltaschen</p>
+                <div class="quick-slots" id="inventory-quick" role="group" aria-label="Trank- und Schriftrollen-Beutel"></div>
+              </div>
+
+              <div class="inventory-col inventory-col--bag" id="inventory-drop-bag" data-drop-slot="bag">
+                <p class="inventory-subtitle inventory-subtitle--bag">Beutel <span data-inventory="bag-count">0</span></p>
+                <div class="bag-grid" id="inventory-bag" aria-live="polite" aria-label="Beute-Beutel"></div>
+              </div>
             </div>
 
-            <p class="inventory-subtitle inventory-subtitle--bag">Beute-Beutel <span data-inventory="bag-count">0</span></p>
-            <div class="inventory-bag" id="inventory-bag" aria-live="polite"></div>
+            <div class="item-inspector" id="item-inspector" aria-live="polite" hidden></div>
           </section>
 
           <aside class="panel inventory-side" aria-label="Inventar-Übersicht">

@@ -341,3 +341,117 @@ export function rarityChanceTable(floor, options = {}) {
     percent: Math.round((weights[id] / total) * 1000) / 10,
   }));
 }
+
+/* -------------------------------------------------------------------------
+   Pixel icons (no emoji) for the inventory grid, paperdoll and shop cards
+   ------------------------------------------------------------------------- */
+
+const icon = (content) =>
+  `<svg class="item-sprite" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${content}</svg>`;
+
+export const ITEM_ICONS = {
+  sword: icon(`
+    <rect x="10" y="1" width="3" height="2" fill="#cfd6e6"/>
+    <rect x="8" y="3" width="3" height="3" fill="#cfd6e6"/>
+    <rect x="6" y="5" width="3" height="3" fill="#8b90a6"/>
+    <rect x="4" y="7" width="4" height="2" fill="var(--icon-accent, #ffcd38)"/>
+    <rect x="3" y="8" width="2" height="5" fill="#7a4a1f"/>
+    <rect x="2" y="12" width="4" height="2" fill="var(--icon-accent, #ffcd38)"/>
+  `),
+  axe: icon(`
+    <rect x="3" y="2" width="4" height="6" fill="#cfd6e6"/>
+    <rect x="5" y="3" width="4" height="4" fill="var(--icon-accent, #ffcd38)"/>
+    <rect x="6" y="8" width="2" height="7" fill="#7a4a1f"/>
+    <rect x="2" y="3" width="2" height="2" fill="#8b90a6"/>
+  `),
+  dagger: icon(`
+    <rect x="8" y="2" width="2" height="6" fill="#dfe3f0"/>
+    <rect x="7" y="3" width="1" height="5" fill="#8b90a6"/>
+    <rect x="6" y="8" width="6" height="1" fill="var(--icon-accent, #ffcd38)"/>
+    <rect x="8" y="9" width="2" height="5" fill="#7a4a1f"/>
+  `),
+  shield: icon(`
+    <rect x="4" y="2" width="8" height="3" fill="#cfd6e6"/>
+    <rect x="3" y="5" width="10" height="5" fill="#8b90a6"/>
+    <rect x="4" y="10" width="8" height="2" fill="#6c7488"/>
+    <rect x="6" y="12" width="4" height="2" fill="#6c7488"/>
+    <rect x="6" y="5" width="4" height="4" fill="var(--icon-accent, #ffcd38)"/>
+  `),
+  wand: icon(`
+    <rect x="7" y="4" width="2" height="10" fill="#7a4a1f"/>
+    <rect x="8" y="5" width="1" height="8" fill="#a96a2c"/>
+    <rect x="6" y="1" width="4" height="3" fill="var(--icon-accent, #a78bfa)"/>
+    <rect x="7" y="0" width="2" height="1" fill="#eafcff"/>
+  `),
+  armor: icon(`
+    <rect x="4" y="2" width="8" height="2" fill="#cfd6e6"/>
+    <rect x="3" y="4" width="10" height="7" fill="#8b90a6"/>
+    <rect x="6" y="5" width="4" height="6" fill="var(--icon-accent, #4eef91)"/>
+    <rect x="5" y="11" width="6" height="3" fill="#6c7488"/>
+  `),
+  ring: icon(`
+    <rect x="5" y="7" width="6" height="2" fill="var(--icon-accent, #ffcd38)"/>
+    <rect x="4" y="9" width="2" height="3" fill="#b8860b"/>
+    <rect x="10" y="9" width="2" height="3" fill="#b8860b"/>
+    <rect x="6" y="12" width="4" height="2" fill="#b8860b"/>
+    <rect x="6" y="3" width="4" height="3" fill="#ff9fae"/>
+    <rect x="7" y="4" width="2" height="1" fill="#ffe37a"/>
+  `),
+  amulet: icon(`
+    <rect x="4" y="1" width="1" height="3" fill="#cfd6e6"/>
+    <rect x="11" y="1" width="1" height="3" fill="#cfd6e6"/>
+    <rect x="4" y="3" width="8" height="1" fill="#cfd6e6"/>
+    <rect x="6" y="5" width="4" height="4" fill="var(--icon-accent, #4eef91)"/>
+    <rect x="7" y="6" width="2" height="2" fill="#eafcff"/>
+    <rect x="7" y="9" width="2" height="3" fill="#b8860b"/>
+  `),
+  potion: icon(`
+    <rect x="6" y="1" width="4" height="3" fill="#cfd6e6"/>
+    <rect x="5" y="4" width="6" height="1" fill="#8b90a6"/>
+    <rect x="4" y="5" width="8" height="5" fill="var(--icon-accent, #e94560)"/>
+    <rect x="3" y="10" width="10" height="4" fill="var(--icon-accent, #e94560)"/>
+    <rect x="5" y="6" width="2" height="2" fill="#ffffff" opacity="0.45"/>
+    <rect x="6" y="11" width="4" height="1" fill="#101216" opacity="0.35"/>
+  `),
+  scroll: icon(`
+    <rect x="4" y="1" width="8" height="14" fill="#e9e2c8"/>
+    <rect x="5" y="2" width="6" height="1" fill="#a7a08a"/>
+    <rect x="5" y="4" width="6" height="1" fill="#7a7464"/>
+    <rect x="5" y="6" width="4" height="1" fill="#7a7464"/>
+    <rect x="5" y="9" width="6" height="1" fill="var(--icon-accent, #e94560)"/>
+    <rect x="3" y="2" width="1" height="12" fill="#b8860b"/>
+    <rect x="12" y="2" width="1" height="12" fill="#b8860b"/>
+  `),
+  gold: icon(`
+    <rect x="4" y="2" width="8" height="2" fill="#ffcd38"/>
+    <rect x="3" y="4" width="10" height="8" fill="#ffcd38"/>
+    <rect x="4" y="12" width="8" height="2" fill="#b8860b"/>
+    <rect x="5" y="5" width="4" height="2" fill="#ffe37a"/>
+    <rect x="9" y="7" width="3" height="4" fill="#b8860b"/>
+  `),
+  misc: icon(`
+    <rect x="3" y="5" width="10" height="7" fill="#8b90a6"/>
+    <rect x="5" y="3" width="6" height="2" fill="#cfd6e6"/>
+    <rect x="6" y="7" width="4" height="3" fill="var(--icon-accent, #ffcd38)"/>
+  `),
+};
+
+export const SLOT_ICONS = {
+  weapon: ITEM_ICONS.sword,
+  offhand: ITEM_ICONS.shield,
+  armor: ITEM_ICONS.armor,
+  trinket: ITEM_ICONS.ring,
+  quick: ITEM_ICONS.potion,
+};
+
+export function itemIcon(item) {
+  if (!item) return ITEM_ICONS.misc;
+  if (item.type === "equipment") return ITEM_ICONS[item.kind] || ITEM_ICONS.misc;
+  if (item.kind === "scroll" || item.effect === "upgrade" || item.type === "scroll") return ITEM_ICONS.scroll;
+  if (item.effect === "mana") return ITEM_ICONS.potion;
+  return ITEM_ICONS.potion;
+}
+
+export function iconFor(kind) {
+  return ITEM_ICONS[kind] || ITEM_ICONS.misc;
+}

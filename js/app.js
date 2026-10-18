@@ -171,6 +171,8 @@ let resetArmed = false;
 let resetTimer = null;
 let dungeonResetArmed = false;
 let dungeonResetTimer = null;
+let classPreview = null;
+let inspectorItemId = null;
 
 /* -------------------------------------------------------------------------
    Utilities + navigation
@@ -709,27 +711,75 @@ function setBattleLog(events) {
   if (text) log.textContent = text;
 }
 
+function classStatChips(cls) {
+  return [
+    ["HP", cls.maxHp],
+    ["ANG", cls.attack],
+    ["DEF", cls.defense],
+    ["KRI", `${Math.round(cls.crit * 100)}%`],
+    ["AUS", `${Math.round(cls.dodge * 100)}%`],
+    ["BLK", `${Math.round(cls.block * 100)}%`],
+  ]
+    .map(([label, value]) => `<span class="hero-detail__stat"><b>${value}</b>${label}</span>`)
+    .join("");
+}
+
 function renderClassSelect() {
   const grid = $("#class-grid");
-  if (grid && !grid.dataset.ready) {
-    grid.innerHTML = CLASSES.classList()
-      .map(
-        (cls) => `
-      <button class="class-card" type="button" data-class-id="${cls.id}">
-        <span class="class-card__icon" aria-hidden="true">${cls.icon}</span>
+  if (!grid) return;
+  if (!classPreview) classPreview = state.heroClass || CLASSES.CLASS_ORDER[0];
+  grid.innerHTML = CLASSES.classList()
+    .map(
+      (cls) => `
+      <button class="class-card${cls.id === classPreview ? " is-selected" : ""}" type="button" role="radio"
+        aria-checked="${cls.id === classPreview}" aria-pressed="${cls.id === classPreview}" data-class-id="${cls.id}">
+        <span class="class-card__portrait" aria-hidden="true">${cls.sprite}</span>
         <span class="class-card__name">${cls.name}</span>
-        <span class="class-card__tag">${cls.tagline}</span>
-        <span class="class-card__desc">${cls.desc}</span>
-        <span class="class-card__skill">✦ ${cls.skill.name}: ${cls.skill.desc}</span>
       </button>`
-      )
-      .join("");
-    grid.dataset.ready = "true";
-  }
+    )
+    .join("");
+
+  const detail = $("#class-detail");
+  const cls = CLASSES.getClass(classPreview);
+  if (!detail || !cls) return;
+  detail.innerHTML = `
+    <div class="hero-detail__head">
+      <span class="hero-detail__portrait" aria-hidden="true">${cls.sprite}</span>
+      <div class="hero-detail__headings">
+        <h4 class="hero-detail__name">${cls.name}</h4>
+        <p class="hero-detail__tagline">${cls.tagline}</p>
+      </div>
+    </div>
+    <p class="hero-detail__desc">${cls.desc}</p>
+    <ul class="hero-detail__buffs">
+      ${cls.buffs.map((buff) => `<li>${buff}</li>`).join("")}
+    </ul>
+    <div class="hero-detail__skill">
+      <span class="hero-detail__skill-name">${cls.skill.name}</span>
+      <span class="hero-detail__skill-desc">${cls.skill.desc}${cls.skill.cost ? ` · ${cls.skill.cost} MP` : ""}</span>
+    </div>
+    <div class="hero-detail__stats">${classStatChips(cls)}</div>
+    <button class="btn btn--primary hero-detail__start" type="button" data-class-start="${cls.id}">
+      Mit ${cls.name} starten
+    </button>
+  `;
 }
 
 function battleTokenStyle(x, y) {
   return `grid-column:${x + 1};grid-row:${y + 1};`;
+}
+
+function renderBattleLog(battle) {
+  const log = $("#battle-log");
+  if (!log) return;
+  const lines = battle?.log?.length ? battle.log : ["Kein Kampf — erkunde die Etage."];
+  log.innerHTML = lines
+    .map(
+      (line, index) =>
+        `<p class="battle-log__line${index === lines.length - 1 ? " is-latest" : ""}"><span class="battle-log__prompt">&gt;</span> ${line}</p>`
+    )
+    .join("");
+  log.scrollTop = log.scrollHeight;
 }
 
 function renderBattleGrid(battle) {
@@ -792,7 +842,7 @@ function renderDungeon() {
   if (body) body.hidden = !cls;
   if (cls) {
     $$('[data-class="icon"]').forEach((el) => {
-      el.textContent = cls.icon;
+      el.innerHTML = cls.sprite;
     });
     $$('[data-class="name"]').forEach((el) => {
       el.textContent = cls.name;
@@ -804,37 +854,50 @@ function renderDungeon() {
 
   const mapEl = $("#dungeon-map");
   if (mapEl) {
-    mapEl.style.setProperty("--map-size", String(dungeon.size));
-    mapEl.innerHTML = dungeon.types
-      .map((type, index) => {
-        const meta = MAP.ROOM_TYPES[type] || MAP.ROOM_TYPES.monster;
-        const visited = dungeon.visited[index];
-        const visible = MAP.isVisible(dungeon, index);
-        const current = index === dungeon.pos;
-        const done = dungeon.cleared[index];
-        const glyph = current ? "★" : visited ? meta.icon : visible ? "?" : "·";
-        const label = current
-          ? `Aktueller Raum: ${meta.name}`
-          : visited
-            ? `${meta.name}${done ? " (erledigt)" : ""}`
-            : visible
-              ? "Unbekannter Raum"
-              : "Unbekannt";
-        const classes = [
-          "map-cell",
-          current ? "is-current" : "",
-          visited ? "is-visited" : "",
-          visible ? "is-seen" : "is-fog",
-          done ? "is-cleared" : "",
-          type === "boss" && (visited || visible) ? "is-boss" : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        return `<button class="${classes}" type="button" data-map-index="${index}" aria-label="${label}"${
-          current ? ' aria-current="true"' : ""
-        }>${glyph}</button>`;
-      })
-      .join("");
+    const tileMap = MAP.buildTileMap(dungeon);
+    const heroTile = MAP.roomTile(dungeon);
+    const heroSprite = CLASSES.classSprite(state.heroClass) || "";
+    mapEl.style.setProperty("--map-dim", String(tileMap.dim));
+    const tiles = tileMap.tiles.map((tile) => {
+      const style = `grid-column:${tile.x + 1};grid-row:${tile.y + 1};`;
+      if (tile.kind === "wall") {
+        return `<span class="tile tile--wall${tile.seen ? " is-seen" : ""}" style="${style}" aria-hidden="true"></span>`;
+      }
+      if (tile.kind === "corridor") {
+        const stateClass = tile.lit ? "is-lit" : tile.seen ? "is-seen" : "is-fog";
+        return `<span class="tile tile--corridor ${stateClass}" style="${style}" aria-hidden="true"></span>`;
+      }
+      const meta = MAP.ROOM_TYPES[tile.roomType] || MAP.ROOM_TYPES.monster;
+      const current = tile.index === dungeon.pos;
+      const clearedRoom = dungeon.cleared[tile.index];
+      const known = tile.seen;
+      const label = current
+        ? `Aktueller Raum: ${meta.name}`
+        : known
+          ? `${meta.name}${clearedRoom ? " (erledigt)" : ""}`
+          : "Unbekannter Raum";
+      const classes = [
+        "tile",
+        "tile--room",
+        "map-cell",
+        current ? "is-current" : "",
+        known ? "is-visited" : "is-fog",
+        clearedRoom ? "is-cleared" : "",
+        tile.roomType === "boss" && known ? "is-boss" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `<button class="${classes}" type="button" data-map-index="${tile.index}" aria-label="${label}"${
+        current ? ' aria-current="true"' : ""
+      } style="${style}">
+        <span class="tile__prop" aria-hidden="true">${known ? MAP.ROOM_SPRITES[tile.roomType] || "" : ""}</span>
+        <span class="tile__fog" aria-hidden="true">${known ? "" : "?"}</span>
+      </button>`;
+    });
+    tiles.push(
+      `<span class="map-hero" style="grid-column:${heroTile.x + 1};grid-row:${heroTile.y + 1};" aria-label="Held auf der Karte">${heroSprite}</span>`
+    );
+    mapEl.innerHTML = tiles.join("");
   }
 
   const roomCard = $("#room-card");
@@ -950,6 +1013,7 @@ function renderDungeon() {
 
   if (battle) {
     renderBattleGrid(battle);
+    renderBattleLog(battle);
     renderQuickBar();
     const enemy = battle.enemy;
     $$('[data-dungeon="enemy-name"]').forEach((el) => {
@@ -1023,7 +1087,7 @@ function renderDungeon() {
     el.textContent = `${Math.round(stats.dodge * 100)}%`;
   });
   $$('[data-dungeon="hero-class-icon"]').forEach((el) => {
-    el.textContent = cls ? cls.icon : "🗡️";
+    el.innerHTML = cls ? cls.sprite : "";
   });
   $$('[data-dungeon="hero-name"]').forEach((el) => {
     el.textContent = cls ? cls.name : "Held";
@@ -1133,19 +1197,39 @@ function itemCard(item) {
   `;
 }
 
+const BAG_SLOTS = 24;
+
+function bagTile(item) {
+  const rarity = ITEMS.RARITIES[item.rarity] || ITEMS.RARITIES.common;
+  const corner = item.type === "equipment" ? `+${item.level || 0}` : `${item.kind === "scroll" ? "SCR" : "1×"}`;
+  return `
+    <button class="item-tile${item.id === inspectorItemId ? " is-selected" : ""}" type="button"
+      draggable="true" data-inv-id="${item.id}" data-item-type="${item.type}"
+      style="--rarity:${rarity.color}"
+      aria-label="${item.name} · ${rarity.name}${item.type === "equipment" ? ` · Stufe ${item.level || 0}` : ""}">
+      <span class="item-tile__icon" aria-hidden="true">${ITEMS.itemIcon(item)}</span>
+      <span class="item-tile__corner">${corner}</span>
+    </button>`;
+}
+
 function renderPaperdoll() {
   const doll = $("#paperdoll");
   if (!doll) return;
   doll.innerHTML = INVENTORY.SLOT_ORDER.map((slot) => {
     const meta = INVENTORY.SLOT_META[slot];
     const item = INVENTORY.equippedItem(state.inventory, slot);
-    const meta2 = item ? ITEMS.RARITIES[item.rarity] || ITEMS.RARITIES.common : null;
+    const rarity = item ? ITEMS.RARITIES[item.rarity] || ITEMS.RARITIES.common : null;
+    const filled = Boolean(item);
+    const selected = filled && item.id === inspectorItemId;
     return `
-      <div class="paperdoll-slot${item ? " is-filled" : ""}" data-slot="${slot}" style="--rarity:${meta2 ? meta2.color : "#363c4d"}">
-        <span class="paperdoll-slot__label">${meta.icon} ${meta.label}</span>
-        <span class="paperdoll-slot__item">${item ? item.name : "leer"}</span>
-        <span class="paperdoll-slot__stats">${item ? ITEMS.statLine(item.stats) : meta.hint}</span>
-        ${item ? `<button class="btn btn--sm btn--ghost" type="button" data-inv-action="unequip" data-inv-id="${item.id}">Ablegen</button>` : ""}
+      <div class="paperdoll-slot${filled ? " is-filled" : ""}${selected ? " is-selected" : ""}"
+        data-slot="${slot}" data-drop-slot="${slot}" style="--rarity:${rarity ? rarity.color : "#363c4d"}"
+        ${filled ? `data-inv-action="inspect" data-inv-id="${item.id}" role="button" tabindex="0"` : ""}
+        aria-label="${meta.label}: ${filled ? item.name : "leer"}">
+        <span class="paperdoll-slot__icon" aria-hidden="true">${filled ? ITEMS.itemIcon(item) : meta.icon}</span>
+        <span class="paperdoll-slot__label">${meta.label}</span>
+        <span class="paperdoll-slot__item">${filled ? item.name : "leer"}</span>
+        <span class="paperdoll-slot__stats">${filled ? ITEMS.statLine(item.stats) : meta.hint}</span>
       </div>
     `;
   }).join("");
@@ -1156,19 +1240,33 @@ function renderQuickSlotsInventory() {
   if (!wrap) return;
   wrap.innerHTML = Array.from({ length: INVENTORY.QUICK_SLOT_COUNT }, (_, index) => {
     const item = INVENTORY.quickItem(state.inventory, index);
-    const meta = item ? ITEMS.RARITIES[item.rarity] || ITEMS.RARITIES.common : null;
+    const rarity = item ? ITEMS.RARITIES[item.rarity] || ITEMS.RARITIES.common : null;
+    const selected = item && item.id === inspectorItemId;
     return `
-      <div class="quick-slot-card${item ? " is-filled" : ""}" style="--rarity:${meta ? meta.color : "#363c4d"}">
-        <span class="quick-slot-card__key">Slot ${index + 1}</span>
-        <span class="quick-slot-card__name">${item ? item.name : "leer"}</span>
-        ${
-          item
-            ? `<button class="btn btn--sm btn--ghost" type="button" data-inv-action="quick-remove" data-inv-id="${item.id}">Entfernen</button>`
-            : ""
-        }
-      </div>
+      <button class="quick-slot-card${item ? " is-filled" : ""}${selected ? " is-selected" : ""}" type="button"
+        data-drop-slot="quick:${index}" style="--rarity:${rarity ? rarity.color : "#363c4d"}"
+        ${item ? `data-inv-action="inspect" data-inv-id="${item.id}"` : 'aria-disabled="true"'}
+        aria-label="Schnellslot ${index + 1}: ${item ? item.name : "leer"}">
+        <span class="quick-slot-card__key">${index + 1}</span>
+        <span class="quick-slot-card__icon" aria-hidden="true">${item ? ITEMS.itemIcon(item) : INVENTORY.QUICK_ICON}</span>
+        <span class="quick-slot-card__name">${item ? item.name.split(" ")[0] : "leer"}</span>
+      </button>
     `;
   }).join("");
+}
+
+function renderItemInspector() {
+  const box = $("#item-inspector");
+  if (!box) return;
+  const item = inspectorItemId ? INVENTORY.findItem(state.inventory, inspectorItemId) : null;
+  if (!item) {
+    inspectorItemId = null;
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = itemCard(item);
 }
 
 function renderInventory() {
@@ -1182,15 +1280,20 @@ function renderInventory() {
   $$('[data-inventory="score"]').forEach((el) => {
     el.textContent = `Ausrüstung ${summary.score}`;
   });
+
   const bag = $("#inventory-bag");
   const bagItems = INVENTORY.bagItems(state.inventory);
   $$('[data-inventory="bag-count"]').forEach((el) => {
     el.textContent = String(bagItems.length);
   });
   if (bag) {
+    const tiles = bagItems.map(bagTile);
+    while (tiles.length < BAG_SLOTS) {
+      tiles.push(`<span class="item-tile item-tile--empty" aria-hidden="true"></span>`);
+    }
     bag.innerHTML = bagItems.length
-      ? bagItems.map(itemCard).join("")
-      : `<p class="inventory-empty">Noch keine Beute. Besiege Monster im Dungeon — je tiefer die Etage, desto besser die Drops.</p>`;
+      ? tiles.join("")
+      : `<p class="bag-empty">Leer — besiege Monster im Verlies. Je tiefer die Etage, desto besser die Beute.</p>${tiles.join("")}`;
   }
 
   const statsEl = $("#inventory-stats");
@@ -1212,13 +1315,22 @@ function renderInventory() {
       .map(([label, value]) => `<span class="inventory-stat"><b>${value}</b>${label}</span>`)
       .join("");
   }
+
+  renderItemInspector();
 }
 
 function inventoryAction(action, id) {
   const item = INVENTORY.findItem(state.inventory, id);
   if (!item) return;
 
+  if (action === "inspect") {
+    inspectorItemId = item.id;
+    renderInventory();
+    return;
+  }
+
   if (action === "equip") {
+    const previousItem = item.slot ? INVENTORY.equippedItem(state.inventory, item.slot) : null;
     const result = INVENTORY.equipItem(state.inventory, id);
     if (!result.ok) {
       audio.playError();
@@ -1230,7 +1342,7 @@ function inventoryAction(action, id) {
     haptic(8);
     toast(
       result.previous
-        ? `${item.name} ausgerüstet — vorher ${result.previous.name}.`
+        ? `${item.name} ausgerüstet · ${ITEMS.compareText(item, previousItem)}`
         : `${item.name} ausgerüstet.`,
       "green"
     );
@@ -1273,6 +1385,7 @@ function inventoryAction(action, id) {
     toast(`${item.name} mit Schriftrolle auf Stufe ${result.level} veredelt.`, "green");
   } else if (action === "sell") {
     const result = INVENTORY.sellItem(state.inventory, id);
+    inspectorItemId = null;
     if (!result.ok) {
       audio.playError();
       toast("Ausgerüstete Items zuerst ablegen.", "magenta");
@@ -2096,6 +2209,7 @@ function chooseHeroClass(classId) {
   const cls = CLASSES.getClass(classId);
   if (!cls) return;
   state.heroClass = classId;
+  classPreview = classId;
   state.battle = null;
   state.dungeon = MAP.createFloor(1);
   const stats = heroStats();
@@ -2106,7 +2220,7 @@ function chooseHeroClass(classId) {
   updateGold();
   audio.playLevelUp();
   haptic([12, 40, 12]);
-  toast(`${cls.icon} ${cls.name} gewählt — ${cls.passive}`, "green");
+  toast(`${cls.name} gewählt — ${cls.passive}`, "green");
 }
 
 function disarmDungeonReset() {
@@ -2432,9 +2546,18 @@ function setup() {
   $("#dungeon-flee")?.addEventListener("click", fleeDungeonBattle);
   $("#class-grid")?.addEventListener("click", (event) => {
     const card = event.target.closest("[data-class-id]");
-    if (card) chooseHeroClass(card.dataset.classId);
+    if (!card || card.dataset.classId === classPreview) return;
+    classPreview = card.dataset.classId;
+    renderClassSelect();
+    audio.playHit();
+    haptic(6);
+  });
+  $("#class-detail")?.addEventListener("click", (event) => {
+    const start = event.target.closest("[data-class-start]");
+    if (start) chooseHeroClass(start.dataset.classStart);
   });
   $("#class-change")?.addEventListener("click", () => {
+    classPreview = state.heroClass || classPreview;
     state.heroClass = null;
     state.battle = null;
     persist();
@@ -2459,9 +2582,120 @@ function setup() {
     haptic(6);
     afterBattleTurn(result.events);
   });
-  $("#inventory-panel")?.addEventListener("click", (event) => {
+  const inventoryPanel = $("#inventory-panel");
+  inventoryPanel?.addEventListener("click", (event) => {
+    const tile = event.target.closest(".item-tile[data-inv-id]");
+    if (tile) {
+      inspectorItemId = tile.dataset.invId;
+      renderInventory();
+      audio.playHit();
+      haptic(5);
+      return;
+    }
+
+    const slotEl = event.target.closest(".paperdoll-slot");
+    if (slotEl) {
+      const selected = inspectorItemId ? INVENTORY.findItem(state.inventory, inspectorItemId) : null;
+      const slot = slotEl.dataset.slot;
+      const canEquipSelected =
+        selected &&
+        selected.type === "equipment" &&
+        selected.slot === slot &&
+        state.inventory.equipped[slot] !== selected.id;
+      if (canEquipSelected) {
+        inventoryAction("equip", selected.id);
+        return;
+      }
+      if (slotEl.dataset.invId) inventoryAction("inspect", slotEl.dataset.invId);
+      return;
+    }
+
     const button = event.target.closest("[data-inv-action]");
     if (button) inventoryAction(button.dataset.invAction, button.dataset.invId);
+  });
+
+  inventoryPanel?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const slot = event.target.closest(".paperdoll-slot[data-inv-id]");
+    if (!slot) return;
+    event.preventDefault();
+    inventoryAction("inspect", slot.dataset.invId);
+  });
+
+  inventoryPanel?.addEventListener("dragstart", (event) => {
+    const tile = event.target.closest(".item-tile[data-inv-id]");
+    if (!tile) return;
+    try {
+      event.dataTransfer.setData("text/plain", tile.dataset.invId);
+      event.dataTransfer.effectAllowed = "move";
+    } catch {
+      // older browsers without dataTransfer
+    }
+    tile.classList.add("is-dragging");
+    inventoryPanel.classList.add("is-dragging-item");
+  });
+
+  inventoryPanel?.addEventListener("dragend", (event) => {
+    event.target.closest?.(".item-tile")?.classList.remove("is-dragging");
+    inventoryPanel.classList.remove("is-dragging-item");
+    inventoryPanel.querySelectorAll(".is-drop-target").forEach((el) => el.classList.remove("is-drop-target"));
+  });
+
+  inventoryPanel?.addEventListener("dragover", (event) => {
+    const zone = event.target.closest("[data-drop-slot]");
+    if (!zone) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    inventoryPanel.querySelectorAll(".is-drop-target").forEach((el) => {
+      if (el !== zone) el.classList.remove("is-drop-target");
+    });
+    zone.classList.add("is-drop-target");
+  });
+
+  inventoryPanel?.addEventListener("drop", (event) => {
+    const zone = event.target.closest("[data-drop-slot]");
+    if (!zone) return;
+    event.preventDefault();
+    let id = "";
+    try {
+      id = event.dataTransfer.getData("text/plain");
+    } catch {
+      id = "";
+    }
+    inventoryPanel.classList.remove("is-dragging-item");
+    inventoryPanel.querySelectorAll(".is-drop-target").forEach((el) => el.classList.remove("is-drop-target"));
+    const item = INVENTORY.findItem(state.inventory, id);
+    if (!item) return;
+    const target = zone.dataset.dropSlot;
+
+    if (target === "bag") {
+      if (item.slot && state.inventory.equipped[item.slot] === item.id) inventoryAction("unequip", item.id);
+      return;
+    }
+
+    if (target.startsWith("quick:")) {
+      const index = Number(target.split(":")[1]);
+      const result = INVENTORY.assignQuickSlot(state.inventory, id, index);
+      if (!result.ok) {
+        audio.playError();
+        toast("Nur Tränke und Schriftrollen passen in die Schnelltaschen.", "magenta");
+        return;
+      }
+      inspectorItemId = item.id;
+      audio.playCoin();
+      haptic(8);
+      persist();
+      render();
+      return;
+    }
+
+    if (item.slot !== target) {
+      audio.playError();
+      toast(`${item.name} passt nicht in den Slot „${INVENTORY.SLOT_META[target]?.label || target}“.`, "magenta");
+      return;
+    }
+    inspectorItemId = item.id;
+    inventoryAction("equip", item.id);
   });
   $("#dungeon-reset")?.addEventListener("click", resetDungeonRun);
   $("#quest-title").addEventListener("input", syncDifficulty);

@@ -117,7 +117,7 @@ export function canAttack(battle, ranged = false) {
 function pushLog(battle, text) {
   if (!text) return;
   battle.log.push(text);
-  if (battle.log.length > 6) battle.log.shift();
+  if (battle.log.length > 10) battle.log.shift();
 }
 
 function rollCrit(battle, chance) {

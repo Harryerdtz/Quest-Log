@@ -185,3 +185,169 @@ export function availableMoves(dungeon) {
 export function roomTypesRemaining(dungeon, type) {
   return dungeon.types.filter((entry, index) => entry === type && !dungeon.cleared[index]).length;
 }
+
+/* -------------------------------------------------------------------------
+   Tile map — classic dungeon rooms joined by corridors, with fog of war
+   ------------------------------------------------------------------------- */
+
+const px = (content) =>
+  `<svg class="tile-sprite" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${content}</svg>`;
+
+export const ROOM_SPRITES = {
+  start: px(`
+    <rect x="4" y="2" width="8" height="2" fill="#cfd6e6"/>
+    <rect x="4" y="4" width="8" height="1" fill="#8b90a6"/>
+    <rect x="5" y="5" width="6" height="1" fill="#101216"/>
+    <rect x="3" y="6" width="10" height="1" fill="#6c7488"/>
+    <rect x="5" y="7" width="6" height="1" fill="#101216"/>
+    <rect x="4" y="8" width="8" height="1" fill="#6c7488"/>
+    <rect x="5" y="9" width="6" height="1" fill="#101216"/>
+    <rect x="3" y="10" width="10" height="1" fill="#6c7488"/>
+    <rect x="5" y="11" width="6" height="1" fill="#101216"/>
+    <rect x="4" y="12" width="8" height="1" fill="#6c7488"/>
+  `),
+  monster: px(`
+    <rect x="3" y="5" width="4" height="1" fill="#e94560"/>
+    <rect x="2" y="6" width="2" height="2" fill="#e94560"/>
+    <rect x="6" y="6" width="1" height="2" fill="#e94560"/>
+    <rect x="9" y="5" width="4" height="1" fill="#e94560"/>
+    <rect x="12" y="6" width="2" height="2" fill="#e94560"/>
+    <rect x="9" y="6" width="1" height="2" fill="#e94560"/>
+    <rect x="7" y="9" width="2" height="4" fill="#c2334d"/>
+  `),
+  treasure: px(`
+    <rect x="2" y="5" width="12" height="3" fill="#a96a2c"/>
+    <rect x="2" y="4" width="12" height="1" fill="#ffcd38"/>
+    <rect x="2" y="8" width="12" height="5" fill="#7a4a1f"/>
+    <rect x="7" y="6" width="2" height="4" fill="#ffcd38"/>
+    <rect x="7" y="8" width="2" height="2" fill="#101216"/>
+    <rect x="3" y="9" width="2" height="1" fill="#b8860b"/>
+    <rect x="11" y="9" width="2" height="1" fill="#b8860b"/>
+  `),
+  merchant: px(`
+    <rect x="2" y="3" width="12" height="2" fill="#e94560"/>
+    <rect x="3" y="5" width="2" height="1" fill="#e9e2c8"/>
+    <rect x="7" y="5" width="2" height="1" fill="#e9e2c8"/>
+    <rect x="11" y="5" width="2" height="1" fill="#e9e2c8"/>
+    <rect x="3" y="9" width="10" height="4" fill="#8a5a2b"/>
+    <rect x="3" y="9" width="10" height="1" fill="#ffcd38"/>
+    <rect x="6" y="10" width="4" height="2" fill="#101216"/>
+    <rect x="2" y="7" width="1" height="6" fill="#7a4a1f"/>
+    <rect x="13" y="7" width="1" height="6" fill="#7a4a1f"/>
+  `),
+  trap: px(`
+    <rect x="2" y="11" width="12" height="2" fill="#6c7488"/>
+    <rect x="3" y="8" width="1" height="3" fill="#dfe3f0"/>
+    <rect x="6" y="7" width="1" height="4" fill="#dfe3f0"/>
+    <rect x="9" y="8" width="1" height="3" fill="#dfe3f0"/>
+    <rect x="12" y="7" width="1" height="4" fill="#dfe3f0"/>
+    <rect x="2" y="13" width="12" height="1" fill="#cfd6e6"/>
+  `),
+  altar: px(`
+    <rect x="5" y="3" width="6" height="2" fill="#7fd4ff"/>
+    <rect x="6" y="5" width="4" height="3" fill="#a78bfa"/>
+    <rect x="7" y="6" width="2" height="1" fill="#eafcff"/>
+    <rect x="4" y="8" width="8" height="2" fill="#8b90a6"/>
+    <rect x="3" y="10" width="10" height="3" fill="#6c7488"/>
+    <rect x="5" y="11" width="6" height="1" fill="#101216"/>
+  `),
+  boss: px(`
+    <rect x="3" y="4" width="10" height="6" fill="#e9e2c8"/>
+    <rect x="4" y="3" width="8" height="1" fill="#e9e2c8"/>
+    <rect x="4" y="6" width="2" height="2" fill="#101216"/>
+    <rect x="10" y="6" width="2" height="2" fill="#101216"/>
+    <rect x="7" y="8" width="2" height="1" fill="#101216"/>
+    <rect x="4" y="10" width="8" height="2" fill="#cfd6e6"/>
+    <rect x="5" y="11" width="1" height="1" fill="#101216"/>
+    <rect x="7" y="11" width="2" height="1" fill="#101216"/>
+    <rect x="10" y="11" width="1" height="1" fill="#101216"/>
+    <rect x="2" y="4" width="1" height="2" fill="#ffcd38"/>
+    <rect x="13" y="4" width="1" height="2" fill="#ffcd38"/>
+  `),
+};
+
+export function tileMapSize(size) {
+  return size * 2 + 1;
+}
+
+export function buildTileMap(dungeon) {
+  const size = dungeon.size;
+  const dim = tileMapSize(size);
+  const tiles = [];
+
+  for (let y = 0; y < dim; y += 1) {
+    for (let x = 0; x < dim; x += 1) {
+      const inner = x > 0 && y > 0 && x < dim - 1 && y < dim - 1;
+      const oddX = x % 2 === 1;
+      const oddY = y % 2 === 1;
+      if (inner && oddX && oddY) {
+        const index = ((y - 1) / 2) * size + (x - 1) / 2;
+        tiles.push({ x, y, kind: "room", index, roomType: dungeon.types[index] || "monster" });
+      } else if (inner && !oddX && oddY) {
+        const left = Math.floor((x - 1) / 2);
+        const row = (y - 1) / 2;
+        tiles.push({ x, y, kind: "corridor", link: [row * size + left, row * size + left + 1] });
+      } else if (inner && oddX && !oddY) {
+        const col = (x - 1) / 2;
+        const top = Math.floor((y - 1) / 2);
+        tiles.push({ x, y, kind: "corridor", link: [top * size + col, (top + 1) * size + col] });
+      } else {
+        tiles.push({ x, y, kind: "wall" });
+      }
+    }
+  }
+
+  const seenRooms = new Set();
+  const litRooms = new Set();
+  dungeon.types.forEach((_, index) => {
+    if (dungeon.visited[index]) {
+      seenRooms.add(index);
+      litRooms.add(index);
+    } else if (isVisible(dungeon, index)) {
+      seenRooms.add(index);
+    }
+  });
+
+  tiles.forEach((tile) => {
+    if (tile.kind === "room") {
+      tile.seen = seenRooms.has(tile.index);
+      tile.lit = litRooms.has(tile.index);
+    } else if (tile.kind === "corridor") {
+      const [a, b] = tile.link;
+      tile.seen = seenRooms.has(a) || seenRooms.has(b);
+      tile.lit = litRooms.has(a) || litRooms.has(b);
+    }
+  });
+
+  const visibleTile = (x, y) => {
+    const tile = tiles.find((entry) => entry.x === x && entry.y === y);
+    return Boolean(tile && tile.kind !== "wall" && tile.seen);
+  };
+
+  tiles.forEach((tile) => {
+    if (tile.kind !== "wall") return;
+    tile.seen =
+      visibleTile(tile.x - 1, tile.y) ||
+      visibleTile(tile.x + 1, tile.y) ||
+      visibleTile(tile.x, tile.y - 1) ||
+      visibleTile(tile.x, tile.y + 1);
+    tile.lit = tile.seen;
+  });
+
+  return { dim, tiles };
+}
+
+export function roomTile(dungeon, index = dungeon.pos) {
+  const { x, y } = positionOf(dungeon, index);
+  return { x: x * 2 + 1, y: y * 2 + 1 };
+}
+
+export function tileMapSummary(dungeon) {
+  const map = buildTileMap(dungeon);
+  return {
+    dim: map.dim,
+    rooms: map.tiles.filter((tile) => tile.kind === "room").length,
+    seen: map.tiles.filter((tile) => tile.seen).length,
+    fog: map.tiles.filter((tile) => tile.kind !== "wall" && !tile.seen).length,
+  };
+}
