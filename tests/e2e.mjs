@@ -434,6 +434,9 @@ try {
       attackLabel: document.querySelector('#dungeon-attack').textContent.trim(),
       heroHp: Number(document.querySelector('[data-dungeon="hero-hp"]').textContent),
       tiles: document.querySelectorAll('.dungeon-tiles .tile').length,
+      tileSize: Math.round(document.querySelector('.tile--room').getBoundingClientRect().width),
+      heroSize: Math.round(document.querySelector('.map-hero svg')?.getBoundingClientRect().width || 0),
+      enemySize: Math.round(document.querySelector('.battle-token--enemy .enemy-sprite')?.getBoundingClientRect().width || 0),
       walls: document.querySelectorAll('.tile--wall').length,
       corridors: document.querySelectorAll('.tile--corridor').length,
       fogRooms: document.querySelectorAll('.tile--room.is-fog').length,
@@ -448,6 +451,12 @@ try {
   check("Tactical grid spawns hero and enemy tokens", explore.gridCells === 35 && explore.heroToken && explore.enemyToken, `${explore.gridCells} tiles`);
   check("Ranged hero can attack on distance", explore.attackLabel.includes("Fernkampf"), explore.attackLabel);
   check("Dungeon renders a real tile map with walls and corridors", explore.tiles === 49 && explore.walls > 20 && explore.corridors === 12, `${explore.tiles} tiles · ${explore.walls} walls · ${explore.corridors} corridors`);
+  check(
+    "Map hero sprite is capped at 32px and never covers the tiles",
+    explore.heroSize > 0 && explore.heroSize <= 32 && explore.heroSize <= explore.tileSize,
+    `${explore.heroSize}px hero in a ${explore.tileSize}px tile`
+  );
+  check("Battle monster sprite is capped at 32px", explore.enemySize > 0 && explore.enemySize <= 32, `${explore.enemySize}px`);
   check("Unexplored rooms stay behind fog of war", explore.fogRooms >= 4 && explore.roomSprites >= 3, `${explore.fogRooms} fogged rooms · ${explore.roomSprites} sprites`);
   check("The hero is drawn on the tile map", explore.mapHero);
   check("Battle log prints a retro terminal log", explore.logLines >= 1 && explore.logText.includes("erscheint"), explore.logLines + " lines");
@@ -670,10 +679,30 @@ try {
       }),
       squareTiles: [...document.querySelectorAll('.bag-grid .item-tile')].every((tile) => {
         const box = tile.getBoundingClientRect();
-        return box.width > 38 && Math.abs(box.width - box.height) <= 2;
+        return box.width >= 40 && box.width <= 48 && Math.abs(box.width - box.height) <= 1;
+      }),
+      compactSlots: [...document.querySelectorAll('.paperdoll-slot, .quick-slot-card')].every((slot) => {
+        const box = slot.getBoundingClientRect();
+        return box.width >= 40 && box.width <= 48 && Math.abs(box.width - box.height) <= 1;
       })
     };
     const state = JSON.parse(localStorage.getItem('questlog_state_v1'));
+    for (let i = 0; i < 3; i += 1) {
+      state.inventory.items.push({
+        id: 'e2e_potion_' + i,
+        type: "consumable",
+        kind: "potion",
+        templateId: "potion_heal",
+        name: "E2E-Trank",
+        rarity: "common",
+        rarityColor: "#a7adbd",
+        level: 0,
+        effect: "heal",
+        power: 0.45,
+        value: 45,
+        desc: "Testtrank"
+      });
+    }
     state.inventory.items.push({
       id: "e2e_sword",
       type: "equipment",
@@ -692,9 +721,10 @@ try {
     localStorage.setItem('questlog_state_v1', JSON.stringify(state));
     return before;
   })()`);
-  check("Paperdoll shows four square equipment slots", inventory.slots === 4 && inventory.squareSlots, String(inventory.slots));
+  check("Paperdoll shows four compact square equipment slots", inventory.slots === 4 && inventory.squareSlots, String(inventory.slots));
   check("Inventory offers six quick slots", inventory.quick === 6, String(inventory.quick));
-  check("Bag renders a 24-slot grid of square tiles", inventory.gridSlots === 24 && inventory.squareTiles, String(inventory.gridSlots));
+  check("Equipment and hotbar slots are 40–48px squares", inventory.compactSlots, "compact slots");
+  check("Bag renders a 28-slot grid of 44px squares", inventory.gridSlots === 28 && inventory.squareTiles, String(inventory.gridSlots));
   check("Every bag item is drawn as a pixel sprite", inventory.bagSprites);
 
   await navigate(`/index.html?e2e=${Date.now()}`);
@@ -705,6 +735,11 @@ try {
     const tile = findTile();
     const tileSprite = Boolean(tile?.querySelector('svg'));
     const draggable = tile?.draggable === true;
+    const stackTile = [...document.querySelectorAll('.item-tile[data-inv-id]')]
+      .find((entry) => (entry.getAttribute('aria-label') || '').includes('E2E-Trank'));
+    const stackBadge = stackTile?.querySelector('.item-tile__corner')?.textContent.trim() || '';
+    const stackCount = stackTile?.dataset.count || '';
+    const iconSize = Math.round(tile?.querySelector('svg')?.getBoundingClientRect().width || 0);
     tile.click();
     const inspector = document.querySelector('#item-inspector');
     const hasCompare = Boolean(inspector.querySelector('.item-card__compare'));
@@ -714,6 +749,9 @@ try {
     return {
       name: document.querySelector('#item-inspector .item-card__name')?.textContent.trim(),
       tileSprite,
+      stackBadge,
+      stackCount,
+      iconSize,
       draggable,
       dropZones: document.querySelectorAll('[data-drop-slot]').length,
       hasCompare,
@@ -726,6 +764,8 @@ try {
     };
   })()`);
   check("Loot in the bag is a pixel sprite tile", equipped.tileSprite && equipped.draggable, `${equipped.name}`);
+  check("Bag icons stay small inside the slots", equipped.iconSize > 0 && equipped.iconSize <= 32, `${equipped.iconSize}px`);
+  check("Identical potions stack with an x3 badge", equipped.stackBadge === "x3" && equipped.stackCount === "3", `${equipped.stackBadge} / count ${equipped.stackCount}`);
   check("Tile clicks open the item inspector with a stat comparison", equipped.hasCompare && equipped.name === "E2E-Klinge", equipped.compareText);
   check("Equipping fills the paperdoll with a sprite", equipped.equippedId === "e2e_sword" && equipped.filled >= 1 && equipped.slotSprite, equipped.equippedId);
   check("Inventory derives hero stats and gear score", equipped.stats > 0 && /Ausrüstung \d+/.test(equipped.score), equipped.score);

@@ -10,10 +10,10 @@ import {
 } from "./items.js";
 
 export const SLOT_META = {
-  weapon: { id: "weapon", label: "Hauptwaffe", icon: SLOT_ICONS.weapon, hint: "Haupt-Hand" },
-  offhand: { id: "offhand", label: "Nebenhand", icon: SLOT_ICONS.offhand, hint: "Schild oder Zauberstab" },
-  armor: { id: "armor", label: "Rüstung", icon: SLOT_ICONS.armor, hint: "Körper" },
-  trinket: { id: "trinket", label: "Ring / Amulett", icon: SLOT_ICONS.trinket, hint: "Schmuck" },
+  weapon: { id: "weapon", label: "Hauptwaffe", short: "Waffe", icon: SLOT_ICONS.weapon, hint: "Haupt-Hand" },
+  offhand: { id: "offhand", label: "Nebenhand", short: "Schild", icon: SLOT_ICONS.offhand, hint: "Schild oder Zauberstab" },
+  armor: { id: "armor", label: "Rüstung", short: "Rüstung", icon: SLOT_ICONS.armor, hint: "Körper" },
+  trinket: { id: "trinket", label: "Ring / Amulett", short: "Ring", icon: SLOT_ICONS.trinket, hint: "Schmuck" },
 };
 
 export const QUICK_ICON = SLOT_ICONS.quick;
@@ -75,6 +75,32 @@ export function bagItems(inv) {
   const equippedIds = new Set(Object.values(inv.equipped).filter(Boolean));
   const quickIds = new Set(inv.quick.filter(Boolean));
   return inv.items.filter((item) => !equippedIds.has(item.id) && !quickIds.has(item.id));
+}
+
+/**
+ * Groups identical consumables into stackable bag slots. Equipment never
+ * stacks, so every equipment entry keeps its own slot.
+ */
+export function bagStacks(inv) {
+  const groups = [];
+  const byKey = new Map();
+  bagItems(inv).forEach((item) => {
+    if (!isConsumable(item)) {
+      groups.push({ item, ids: [item.id], count: 1 });
+      return;
+    }
+    const key = `${item.templateId || item.kind}:${item.effect || item.kind}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.ids.push(item.id);
+      return;
+    }
+    const stack = { item, ids: [item.id], count: 1 };
+    byKey.set(key, stack);
+    groups.push(stack);
+  });
+  return groups;
 }
 
 export function equipItem(inv, id) {

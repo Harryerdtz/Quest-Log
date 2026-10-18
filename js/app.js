@@ -1197,18 +1197,19 @@ function itemCard(item) {
   `;
 }
 
-const BAG_SLOTS = 24;
+const BAG_SLOTS = 28;
 
-function bagTile(item) {
+function bagTile({ item, count }) {
   const rarity = ITEMS.RARITIES[item.rarity] || ITEMS.RARITIES.common;
-  const corner = item.type === "equipment" ? `+${item.level || 0}` : `${item.kind === "scroll" ? "SCR" : "1×"}`;
+  const corner = item.type === "equipment" ? (item.level ? `+${item.level}` : "") : count > 1 ? `x${count}` : "";
   return `
     <button class="item-tile${item.id === inspectorItemId ? " is-selected" : ""}" type="button"
-      draggable="true" data-inv-id="${item.id}" data-item-type="${item.type}"
+      draggable="true" data-inv-id="${item.id}" data-item-type="${item.type}" data-count="${count}"
       style="--rarity:${rarity.color}"
-      aria-label="${item.name} · ${rarity.name}${item.type === "equipment" ? ` · Stufe ${item.level || 0}` : ""}">
+      title="${item.name}${count > 1 ? ` ×${count}` : ""}"
+      aria-label="${item.name}${count > 1 ? ` ×${count}` : ""} · ${rarity.name}${item.type === "equipment" ? ` · Stufe ${item.level || 0}` : ""}">
       <span class="item-tile__icon" aria-hidden="true">${ITEMS.itemIcon(item)}</span>
-      <span class="item-tile__corner">${corner}</span>
+      ${corner ? `<span class="item-tile__corner">${corner}</span>` : ""}
     </button>`;
 }
 
@@ -1225,10 +1226,11 @@ function renderPaperdoll() {
       <div class="paperdoll-slot${filled ? " is-filled" : ""}${selected ? " is-selected" : ""}"
         data-slot="${slot}" data-drop-slot="${slot}" style="--rarity:${rarity ? rarity.color : "#363c4d"}"
         ${filled ? `data-inv-action="inspect" data-inv-id="${item.id}" role="button" tabindex="0"` : ""}
+        title="${meta.label}: ${filled ? `${item.name} · ${ITEMS.statLine(item.stats)}` : "leer"}"
         aria-label="${meta.label}: ${filled ? item.name : "leer"}">
         <span class="paperdoll-slot__icon" aria-hidden="true">${filled ? ITEMS.itemIcon(item) : meta.icon}</span>
-        <span class="paperdoll-slot__label">${meta.label}</span>
-        <span class="paperdoll-slot__item">${filled ? item.name : "leer"}</span>
+        <span class="paperdoll-slot__label">${filled ? item.name : meta.short || meta.label}</span>
+        <span class="paperdoll-slot__item">${filled ? `+${item.level || 0}` : "leer"}</span>
         <span class="paperdoll-slot__stats">${filled ? ITEMS.statLine(item.stats) : meta.hint}</span>
       </div>
     `;
@@ -1283,15 +1285,16 @@ function renderInventory() {
 
   const bag = $("#inventory-bag");
   const bagItems = INVENTORY.bagItems(state.inventory);
+  const stacks = INVENTORY.bagStacks(state.inventory);
   $$('[data-inventory="bag-count"]').forEach((el) => {
     el.textContent = String(bagItems.length);
   });
   if (bag) {
-    const tiles = bagItems.map(bagTile);
+    const tiles = stacks.map(bagTile);
     while (tiles.length < BAG_SLOTS) {
       tiles.push(`<span class="item-tile item-tile--empty" aria-hidden="true"></span>`);
     }
-    bag.innerHTML = bagItems.length
+    bag.innerHTML = stacks.length
       ? tiles.join("")
       : `<p class="bag-empty">Leer — besiege Monster im Verlies. Je tiefer die Etage, desto besser die Beute.</p>${tiles.join("")}`;
   }

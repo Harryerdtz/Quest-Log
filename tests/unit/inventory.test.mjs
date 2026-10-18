@@ -103,6 +103,30 @@ test("quick slots only accept consumables and consume on use", () => {
   assert.equal(INV.findItem(inv, potion.id), null);
 });
 
+test("identical consumables stack while equipment keeps its own slot", () => {
+  const inv = INV.createInventory();
+  const potions = [
+    I.createConsumable("potion_heal"),
+    I.createConsumable("potion_heal"),
+    I.createConsumable("potion_heal"),
+  ];
+  const mana = I.createConsumable("potion_mana");
+  const sword = makeItem("sword");
+  const axe = makeItem("axe");
+  [...potions, mana, sword, axe].forEach((item) => INV.addItem(inv, item));
+
+  const stacks = INV.bagStacks(inv);
+  assert.equal(stacks.length, 4);
+  const healStack = stacks.find((stack) => stack.item.templateId === "potion_heal");
+  assert.equal(healStack.count, 3);
+  assert.deepEqual(healStack.ids, potions.map((item) => item.id));
+  assert.equal(stacks.filter((stack) => stack.count === 1).length, 3);
+
+  INV.assignQuickSlot(inv, potions[0].id, 0);
+  const afterQuick = INV.bagStacks(inv).find((stack) => stack.item.templateId === "potion_heal");
+  assert.equal(afterQuick.count, 2);
+});
+
 test("gear buffs aggregate every equipped slot", () => {
   const inv = INV.createInventory();
   const sword = makeItem("sword", "legendary", 10);

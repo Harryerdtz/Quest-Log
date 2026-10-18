@@ -6116,3 +6116,345 @@ button.is-pressed {
     animation: none;
   }
 }
+
+/* ==========================================================================
+   Sprite hard caps + compact Minecraft-style inventory + hero select polish
+   ========================================================================== */
+
+/* --- Giant-sprite fix: nothing on the map may exceed 32×32px -------------- */
+
+.dungeon-tiles {
+  position: relative;
+  overflow: hidden;
+}
+
+.map-hero {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  align-self: center;
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
+  max-height: 32px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-hero .class-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 32px;
+  max-height: 32px;
+}
+
+.tile-sprite {
+  display: block;
+  width: 32px;
+  height: 32px;
+  max-width: 74%;
+  max-height: 74%;
+}
+
+.tile__prop,
+.tile__fog {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.battle-grid {
+  overflow: hidden;
+}
+
+.battle-token {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.battle-token .avatar-sprite,
+.battle-token .enemy-sprite {
+  display: block;
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
+  max-height: 32px;
+}
+
+.battle-tile {
+  overflow: hidden;
+}
+
+/* --- Fixed 44px inventory slots ------------------------------------------ */
+
+.inventory-panel {
+  --slot: 44px;
+  --slot-gap: 4px;
+}
+
+.inventory-stage {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.inventory-col--gear {
+  width: calc(var(--slot) * 2 + var(--slot-gap));
+  align-content: start;
+}
+
+.inventory-col--gear .inventory-subtitle {
+  margin: 0 0 3px;
+  font-size: 5px;
+  letter-spacing: 0.3px;
+}
+
+.inventory-col--gear .inventory-subtitle + .paperdoll {
+  margin-bottom: 8px;
+}
+
+.paperdoll {
+  grid-template-columns: repeat(2, var(--slot));
+  gap: var(--slot-gap);
+  margin-bottom: 6px;
+}
+
+.paperdoll-slot {
+  width: var(--slot);
+  height: var(--slot);
+  aspect-ratio: auto;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  padding: 2px;
+  border-width: 2px;
+  box-shadow: inset 0 0 0 1px #05070a;
+}
+
+.paperdoll-slot.is-filled {
+  box-shadow: inset 0 0 0 1px #05070a, 0 0 8px -4px var(--rarity);
+}
+
+.paperdoll-slot__icon {
+  width: 100%;
+  height: 100%;
+  max-height: 28px;
+  overflow: hidden;
+}
+
+.paperdoll-slot__icon svg,
+.paperdoll-slot__icon .item-sprite {
+  display: block;
+  width: 26px;
+  height: 26px;
+  max-width: 26px;
+  max-height: 26px;
+  aspect-ratio: auto;
+}
+
+.paperdoll-slot__label {
+  max-width: 100%;
+  padding: 0 1px;
+  font-family: var(--font-body);
+  font-size: 6px;
+  line-height: 1.1;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paperdoll-slot.is-filled .paperdoll-slot__label {
+  color: var(--rarity);
+}
+
+.paperdoll-slot__item,
+.paperdoll-slot__stats {
+  display: none;
+}
+
+.quick-slots {
+  grid-template-columns: repeat(2, var(--slot));
+  gap: var(--slot-gap);
+  margin-bottom: 0;
+}
+
+.quick-slot-card {
+  position: relative;
+  width: var(--slot);
+  height: var(--slot);
+  aspect-ratio: auto;
+  gap: 0;
+  padding: 1px;
+  overflow: hidden;
+}
+
+.quick-slot-card__key {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 5px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.quick-slot-card__icon {
+  width: 100%;
+  height: 100%;
+  max-height: 26px;
+  overflow: hidden;
+}
+
+.quick-slot-card__icon svg {
+  display: block;
+  width: 26px;
+  height: 26px;
+  max-width: 26px;
+  max-height: 26px;
+}
+
+.quick-slot-card__name {
+  display: none;
+}
+
+.inventory-col--bag {
+  padding: 5px;
+}
+
+.bag-grid {
+  grid-template-columns: repeat(4, var(--slot));
+  gap: var(--slot-gap);
+  justify-content: start;
+  align-content: start;
+}
+
+.item-tile {
+  width: var(--slot);
+  height: var(--slot);
+  aspect-ratio: auto;
+  padding: 2px;
+  border-width: 2px;
+  overflow: hidden;
+}
+
+.item-tile__icon {
+  width: 100%;
+  height: 100%;
+  max-height: 32px;
+  overflow: hidden;
+}
+
+.item-tile__icon svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.item-tile__corner {
+  right: 1px;
+  bottom: 0;
+  padding: 0 1px;
+  font-size: 6px;
+  line-height: 1.3;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--gold-soft);
+}
+
+.item-inspector {
+  margin-top: 8px;
+}
+
+.item-inspector .item-card {
+  padding: 8px;
+}
+
+.item-inspector .item-card__actions .btn {
+  min-height: 40px;
+}
+
+.bag-empty {
+  padding: 6px;
+  font-size: 8px;
+}
+
+/* --- Compact hero-select boxes ------------------------------------------- */
+
+.class-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.class-card {
+  gap: 3px;
+  padding: 3px 2px;
+  border-width: 2px;
+  box-shadow: inset 0 0 0 1px #3a4152;
+}
+
+.class-card__portrait {
+  aspect-ratio: 1;
+  max-height: 64px;
+  border-width: 1px;
+}
+
+.class-card__portrait .class-sprite {
+  display: block;
+  width: 44px;
+  height: 44px;
+  max-width: 74%;
+  max-height: 74%;
+}
+
+.class-card__name {
+  font-size: 5px;
+  letter-spacing: 0.2px;
+  line-height: 1.3;
+}
+
+.hero-detail__portrait {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+}
+
+.hero-detail__portrait .class-sprite {
+  display: block;
+  width: 38px;
+  height: 38px;
+  max-width: 38px;
+  max-height: 38px;
+}
+
+.hero-detail__head {
+  gap: 8px;
+}
+
+.hero-detail {
+  gap: 6px;
+  padding: 8px;
+}
+
+@media (min-width: 701px) {
+  .bag-grid {
+    grid-template-columns: repeat(7, var(--slot));
+  }
+}
+
+@media (max-width: 359px) {
+  .inventory-panel {
+    --slot: 40px;
+  }
+
+  .class-grid {
+    gap: 3px;
+  }
+
+  .class-card__portrait .class-sprite {
+    width: 38px;
+    height: 38px;
+  }
+}
