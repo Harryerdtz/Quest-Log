@@ -13,7 +13,7 @@ const DEFAULT_STATE = {
   streak: 0,
   lastActiveDate: null,
   lastDailyReset: null,
-  settings: { sound: true },
+  settings: { sound: true, haptics: true, difficulty: "normal" },
   gold: 250,
   owned: ["avatar_hero"],
   equippedAvatar: "avatar_hero",
@@ -23,6 +23,11 @@ const DEFAULT_STATE = {
   lastLootAt: null,
   upgrades: { weapon: 0, armor: 0, strength: 0, vitality: 0 },
   dungeon: null,
+  rune: "fire",
+  totalLoot: 0,
+  monstersSlain: 0,
+  bestStreak: 0,
+  goldEarned: 0,
 };
 
 const DIFFICULTIES = ["easy", "medium", "hard", "boss"];
@@ -61,6 +66,16 @@ function normalizeState(raw) {
     ...(source.settings && typeof source.settings === "object" ? source.settings : {}),
   };
   clean.settings.sound = source.settings?.sound !== false;
+  clean.settings.haptics = source.settings?.haptics !== false;
+  clean.settings.difficulty = source.settings?.difficulty === "heroic" ? "heroic" : "normal";
+
+  clean.rune = DUNGEON.ELEMENTS[source.rune] ? source.rune : "fire";
+  clean.totalLoot = Number.isFinite(source.totalLoot) ? Math.max(0, Math.floor(source.totalLoot)) : 0;
+  clean.monstersSlain = Number.isFinite(source.monstersSlain) ? Math.max(0, Math.floor(source.monstersSlain)) : 0;
+  clean.bestStreak = Number.isFinite(source.bestStreak) ? Math.max(0, Math.floor(source.bestStreak)) : 0;
+  clean.goldEarned = Number.isFinite(source.goldEarned) ? Math.max(0, Math.floor(source.goldEarned)) : 0;
+
+  const mode = clean.settings.difficulty;
 
   clean.upgrades = {};
   DUNGEON.UPGRADES.forEach((upgrade) => {
@@ -70,7 +85,7 @@ function normalizeState(raw) {
 
   const stats = DUNGEON.heroStats(clean.upgrades);
   const floor = Number.isFinite(source.dungeon?.floor) ? Math.max(1, Math.floor(source.dungeon.floor)) : 1;
-  const enemy = DUNGEON.createEnemy(floor);
+  const enemy = DUNGEON.createEnemy(floor, mode);
   clean.dungeon = {
     floor,
     hp: Number.isFinite(source.dungeon?.hp)
@@ -82,7 +97,7 @@ function normalizeState(raw) {
   };
 
   const bossLevel = Number.isFinite(source.boss?.level) ? Math.max(1, Math.floor(source.boss.level)) : 1;
-  const bossTemplate = RAID.createBoss(bossLevel);
+  const bossTemplate = RAID.createBoss(bossLevel, mode);
   clean.boss = {
     ...bossTemplate,
     hp: Number.isFinite(source.boss?.hp)
@@ -101,8 +116,6 @@ function normalizeState(raw) {
 let state = normalizeState(loadState());
 let levelUpTimer = null;
 let levelUpHideTimer = null;
-let shopCloseTimer = null;
-let shopLastFocus = null;
 let activeShopTab = "equipment";
 let categoryControl = null;
 let difficultyControl = null;
@@ -139,6 +152,11 @@ function toast(message, tone = "gold") {
   }, 2800);
 }
 
+function haptic(duration = 8) {
+  if (state.settings.haptics === false) return;
+  if (typeof navigator.vibrate === "function") navigator.vibrate(duration);
+}
+
 function pulseWallet() {
   const wallet = $("#btn-shop");
   if (!wallet) return;
@@ -160,7 +178,10 @@ function setTab(tab) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
+  document.body.dataset.tab = target;
+  if (target === "shop") renderShop();
   if (window.scrollY > 0) window.scrollTo(0, 0);
+  haptic(6);
 }
 
 /* -------------------------------------------------------------------------
@@ -406,12 +427,18 @@ function handleListClick(event) {
       if (hasXpBooster) state.boosterXp = Math.max(0, state.boosterXp - 1);
 
       const hasGoldBooster = state.boosterGold > 0;
-      const goldGain = Math.round(RAID.goldForQuest(quest.difficulty) * (hasGoldBooster ? 1.5 : 1));
+      const goldGain = Math.round(
+        RAID.goldForQuest(quest.difficulty, state.settings.difficulty) * (hasGoldBooster ? 1.5 : 1)
+      );
       if (hasGoldBooster) state.boosterGold = Math.max(0, state.boosterGold - 1);
       state.gold += goldGain;
+      state.goldEarned += goldGain;
 
       const raid = RAID.damageBoss(state.boss, result.xpGain);
-      if (raid.defeated) state.gold += raid.goldReward;
+      if (raid.defeated) {
+        state.gold += raid.goldReward;
+        state.goldEarned += raid.goldReward;
+      }
 
       quest.done = true;
       persist();
@@ -511,8 +538,9 @@ function renderBoss() {
 }
 
 function updateLoot(now = Date.now()) {
-  const pending = RAID.lootPending(state, now);
-  const full = pending >= RAID.LOOT_CAP;
+  const mode = state.settings.difficulty;
+  const pending = RAID.lootPending(state, now, mode);
+  const full = pending >= RAID.lootCap(mode);
   $$('[data-loot="pending"]').forEach((el) => {
     el.textContent = String(pending);
   });
@@ -523,18 +551,24 @@ function updateLoot(now = Date.now()) {
   if (label) label.textContent = pending > 0 ? `Loot einsammeln (+${pending})` : "Loot sammelt sich …";
   const timer = $('[data-loot="timer"]');
   if (timer) {
-    timer.textContent = full ? "Kiste voll — jetzt einsammeln!" : `Nächster Loot in ${RAID.lootNextIn(state, now)}s`;
+    timer.textContent = full
+      ? "Kiste voll — jetzt einsammeln!"
+      : `Nächster Loot in ${RAID.lootNextIn(state, now, mode)}s`;
   }
   const panel = $("#loot-panel");
   if (panel) panel.classList.toggle("is-ready", pending > 0);
 }
 
 function renderDungeon() {
+  const mode = state.settings.difficulty;
   const stats = DUNGEON.heroStats(state.upgrades);
   const floor = state.dungeon.floor;
-  const enemy = DUNGEON.createEnemy(floor);
+  const enemy = DUNGEON.createEnemy(floor, mode);
   const enemyHp = Math.max(0, Math.min(enemy.hp, state.dungeon.enemyHp));
   const heroHp = Math.max(0, Math.min(stats.maxHp, state.dungeon.hp));
+  const heroElement = DUNGEON.ELEMENTS[state.rune] || DUNGEON.ELEMENTS.fire;
+  const enemyElement = DUNGEON.ELEMENTS[enemy.element];
+  const weakness = DUNGEON.ELEMENTS[enemy.weakness];
 
   $$('[data-dungeon="floor"]').forEach((el) => {
     el.textContent = String(floor);
@@ -553,6 +587,33 @@ function renderDungeon() {
   });
   $$('[data-dungeon="defense"]').forEach((el) => {
     el.textContent = String(stats.defense);
+  });
+  $$('[data-dungeon="crit"]').forEach((el) => {
+    el.textContent = `${Math.round(stats.crit * 100)}%`;
+  });
+  $$('[data-dungeon="enemy-dodge"]').forEach((el) => {
+    el.textContent = `${Math.round(enemy.dodge * 100)}%`;
+  });
+  $$('[data-dungeon="hero-element"]').forEach((el) => {
+    el.textContent = heroElement.name;
+  });
+  $$('[data-dungeon="enemy-element"]').forEach((el) => {
+    el.textContent = enemyElement.name;
+  });
+  $$('[data-dungeon="enemy-weakness"]').forEach((el) => {
+    el.textContent = weakness.name;
+  });
+  const heroDot = $('[data-dungeon="hero-element-dot"]');
+  if (heroDot) heroDot.style.setProperty("--element", heroElement.color);
+  const enemyDot = $('[data-dungeon="enemy-element-dot"]');
+  if (enemyDot) enemyDot.style.setProperty("--element", enemyElement.color);
+  const weaknessEl = $('[data-dungeon="enemy-weakness"]');
+  if (weaknessEl) weaknessEl.style.color = weakness.color;
+
+  $$(".rune-btn").forEach((button) => {
+    const active = button.dataset.rune === state.rune;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
 
   const heroFill = $('[data-dungeon="hero-hp-fill"]');
@@ -585,13 +646,14 @@ function renderDungeon() {
   }
 
   const panel = $("#dungeon-panel");
-  if (panel) panel.classList.toggle("is-boss", enemy.boss);
+  if (panel) panel.classList.toggle("is-boss", enemy.elite);
 
   const status = $('[data-dungeon="status"]');
   if (status) {
-    status.textContent = enemy.boss
-      ? `Boss-Etage! ${enemy.name} wartet mit ${enemy.hp} HP.`
-      : `Etage ${floor}: ${enemy.name} blockiert den Weg.`;
+    const modeLabel = mode === "heroic" ? "Heroic" : "Casual";
+    status.textContent = enemy.elite
+      ? `Elite-Etage ${floor}! ${enemy.name} · ${enemy.hp} HP · ${modeLabel}.`
+      : `Etage ${floor}: ${enemy.name} blockiert den Weg · ${modeLabel}.`;
   }
 }
 
@@ -602,11 +664,21 @@ function renderSettings() {
     floor: state.dungeon.floor,
     gold: state.gold,
     level: state.level,
+    loot: state.totalLoot,
+    monsters: state.monstersSlain,
+    bestStreak: state.bestStreak,
+    bossLevel: state.boss.level,
   };
   Object.entries(values).forEach(([key, value]) => {
     $$(`[data-settings="${key}"]`).forEach((el) => {
       el.textContent = String(value);
     });
+  });
+
+  $$(".mode-btn").forEach((button) => {
+    const active = button.dataset.mode === state.settings.difficulty;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
 }
 
@@ -616,7 +688,9 @@ function renderSettings() {
 
 function upgradeCard(upgrade) {
   const level = state.upgrades[upgrade.id] || 0;
-  const cost = DUNGEON.upgradeCost(upgrade, level);
+  const mode = state.settings.difficulty;
+  const cost = DUNGEON.upgradeCost(upgrade, level, mode);
+  const growth = mode === "heroic" ? "1,75×" : "1,55×";
   return `
     <article class="shop-card shop-card--upgrade" style="--card-accent:#4eef91">
       <div class="shop-card__preview">${upgrade.icon}</div>
@@ -626,9 +700,10 @@ function upgradeCard(upgrade) {
       </div>
       <h3 class="shop-card__name">${upgrade.name}</h3>
       <p class="shop-card__desc">${upgrade.desc}</p>
+      <span class="shop-card__growth">Stufe ${level + 1} · Preis ×${growth}</span>
       <div class="shop-card__meta">
         <span class="shop-card__price">${COIN_SVG}<span>${cost}</span></span>
-        <button class="btn btn--sm btn--equip" type="button" data-upgrade-id="${upgrade.id}">Upgrade</button>
+        <button class="btn btn--sm btn--equip" type="button" data-upgrade-id="${upgrade.id}" aria-label="${upgrade.name} auf Stufe ${level + 1} bringen für ${cost} Gold">Upgrade</button>
       </div>
     </article>
   `;
@@ -682,10 +757,12 @@ function renderShopMeta() {
   if (activeShopTab === "equipment") {
     const stats = DUNGEON.heroStats(state.upgrades);
     meta.innerHTML = `
+      <span class="stock-chip stock-chip--gold">${state.settings.difficulty === "heroic" ? "HEROIC" : "CASUAL"}</span>
       <span class="stock-chip">ANG ${stats.attack}</span>
       <span class="stock-chip">DEF ${stats.defense}</span>
       <span class="stock-chip">HP ${stats.maxHp}</span>
-      <span class="stock-chip stock-chip--gold">Etage ${state.dungeon.floor}</span>
+      <span class="stock-chip">KRI ${Math.round(stats.crit * 100)}%</span>
+      <span class="stock-chip">Etage ${state.dungeon.floor}</span>
     `;
   } else if (activeShopTab === "booster") {
     const chips = [];
@@ -720,37 +797,16 @@ function renderShop() {
   renderShopMeta();
 }
 
-function openShop(category = null) {
-  const modal = $("#shop-modal");
-  if (!modal) return;
-  clearTimeout(shopCloseTimer);
-  if (!modal.hidden && modal.classList.contains("is-open")) return;
+function setShopCategory(category) {
   if (category && SHOP_CATEGORIES.includes(category)) activeShopTab = category;
-  shopLastFocus = document.activeElement;
-  modal.hidden = false;
-  document.body.classList.add("is-modal-open");
   renderShop();
-  requestAnimationFrame(() => {
-    modal.classList.add("is-open");
-    $("#shop-close")?.focus();
-  });
-}
-
-function closeShop() {
-  const modal = $("#shop-modal");
-  if (!modal || modal.hidden) return;
-  modal.classList.remove("is-open");
-  document.body.classList.remove("is-modal-open");
-  shopCloseTimer = setTimeout(() => {
-    modal.hidden = true;
-  }, 180);
-  if (shopLastFocus && typeof shopLastFocus.focus === "function") shopLastFocus.focus();
 }
 
 function purchaseUpgrade(upgrade) {
   if (!upgrade) return;
+  const mode = state.settings.difficulty;
   const level = state.upgrades[upgrade.id] || 0;
-  const cost = DUNGEON.upgradeCost(upgrade, level);
+  const cost = DUNGEON.upgradeCost(upgrade, level, mode);
   if (state.gold < cost) {
     audio.playError();
     toast(`Nicht genug Gold. Benötigt: ${cost}.`, "magenta");
@@ -775,18 +831,18 @@ function purchaseUpgrade(upgrade) {
 }
 
 function initShop() {
-  $$("[data-open-shop]").forEach((button) => {
-    button.addEventListener("click", () => openShop(button.dataset.shopCategory || null));
-  });
-  $("#btn-shop")?.addEventListener("click", () => openShop());
-  $$("[data-shop-close]").forEach((el) => el.addEventListener("click", closeShop));
-  $("#shop-close")?.addEventListener("click", closeShop);
-
   $$(".shop-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      activeShopTab = tab.dataset.shopTab;
-      renderShop();
-    });
+    tab.addEventListener("click", () => setShopCategory(tab.dataset.shopTab));
+  });
+
+  $$("[data-shop-category]").forEach((button) => {
+    button.addEventListener("click", () => setShopCategory(button.dataset.shopCategory));
+  });
+
+  $("#btn-shop")?.addEventListener("click", () => setTab("shop"));
+  $("#btn-avatar")?.addEventListener("click", () => {
+    activeShopTab = "cosmetic";
+    setTab("shop");
   });
 
   $("#shop-grid")?.addEventListener("click", (event) => {
@@ -829,35 +885,12 @@ function initShop() {
     updateAvatar();
     updateBoosters();
     syncDifficulty();
+    renderSettings();
     renderShop();
     document.querySelector(`#shop-grid [data-item-id="${item.id}"]:not([disabled])`)?.focus();
     pulseWallet();
     audio.playCoin();
     toast(result.message, item.type === "reward" ? "gold" : "green");
-  });
-
-  const modal = $("#shop-modal");
-  modal?.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeShop();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const focusables = $$(
-      'button:not([disabled]), [href], input:not([type="hidden"]), [tabindex]:not([tabindex="-1"])',
-      modal
-    ).filter((el) => el.offsetParent !== null);
-    if (!focusables.length) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   });
 }
 
@@ -929,15 +962,18 @@ function flashDungeon(result) {
   const panel = $("#dungeon-panel");
   if (!panel) return;
   const float = $('[data-dungeon="damage"]', panel);
-  if (float) float.textContent = `-${result.damage}`;
-  panel.classList.remove("is-attacking");
+  if (float) float.textContent = result.dodged ? "MISS" : `-${result.damage}`;
+  panel.classList.remove("is-attacking", "is-crit");
   void panel.offsetWidth;
   panel.classList.add("is-attacking");
-  setTimeout(() => panel.classList.remove("is-attacking"), 500);
+  if (result.crit) panel.classList.add("is-crit");
+  setTimeout(() => panel.classList.remove("is-attacking", "is-crit"), 520);
 
   const status = $('[data-dungeon="status"]');
   if (status) {
-    if (result.type === "floor") {
+    if (result.type === "elite") {
+      status.textContent = `Elite besiegt! +${result.gold} Gold · Etage ${state.dungeon.floor}.`;
+    } else if (result.type === "floor") {
       status.textContent = `Etage geschafft! +${result.gold} Gold · Weiter zu Etage ${state.dungeon.floor}.`;
     } else if (result.type === "down") {
       status.textContent = `Besiegt! Zurück zu Etage ${state.dungeon.floor} — HP aufgefüllt.`;
@@ -947,8 +983,27 @@ function flashDungeon(result) {
   }
 }
 
+function describeCombat(result) {
+  const bits = [];
+  if (result.dodged) bits.push("Gegner weicht aus!");
+  else {
+    bits.push(`${result.crit ? "KRITISCH! " : ""}${result.damage} Schaden`);
+    if (result.multiplier > 1) bits.push("Elementar-Schwäche ×1,5");
+    if (result.multiplier < 1) bits.push("Elementar-Widerstand ×0,7");
+  }
+  if (result.type === "hit") {
+    if (result.blocked) bits.push("Block! halber Konter");
+    if (result.enemyCrit) bits.push("Gegner-Krit");
+    bits.push(`Konter −${result.counter} HP`);
+  }
+  if (result.type === "elite") bits.push("Elite-Bonus kassiert");
+  if (result.type === "down") bits.push("Niedergeschlagen, eine Etage zurück");
+  return bits.join(" · ");
+}
+
 function dungeonAttack() {
-  const result = DUNGEON.attackDungeon(state);
+  const result = DUNGEON.attackDungeon(state, state.settings.difficulty);
+  state.monstersSlain += result.slain || 0;
   persist();
   renderDungeon();
   updateGold();
@@ -957,10 +1012,19 @@ function dungeonAttack() {
   renderShop();
   flashDungeon(result);
   audio.playHit();
+  haptic(result.crit ? [10, 30, 12] : 8);
 
-  if (result.type === "floor") {
+  const log = $('[data-dungeon="log"]');
+  if (log) log.textContent = describeCombat(result);
+
+  if (result.type === "elite" || result.type === "floor") {
     audio.playCoin();
-    toast(`Etage geschafft! +${result.gold} Gold`, "green");
+    toast(
+      result.type === "elite"
+        ? `Elite besiegt! +${result.gold} Gold`
+        : `Etage geschafft! +${result.gold} Gold`,
+      result.type === "elite" ? "magenta" : "green"
+    );
   } else if (result.type === "down") {
     toast(`Besiegt! Zurück zu Etage ${state.dungeon.floor}.`, "magenta");
   }
@@ -971,8 +1035,10 @@ function dungeonAttack() {
    ------------------------------------------------------------------------- */
 
 function collectLoot() {
-  const result = RAID.collectLoot(state);
+  const result = RAID.collectLoot(state, Date.now(), state.settings.difficulty);
   if (!result.ok) return;
+  state.totalLoot += result.gold;
+  state.goldEarned += result.gold;
   persist();
   updateGold();
   updateLoot();
@@ -997,6 +1063,40 @@ function syncSoundUI() {
   button.setAttribute("aria-pressed", String(enabled));
   const label = $("[data-sound-label]", button);
   if (label) label.textContent = enabled ? "AN" : "AUS";
+}
+
+function syncHapticsUI() {
+  const enabled = state.settings.haptics !== false;
+  const button = $("#btn-haptics");
+  if (!button) return;
+  button.classList.toggle("is-on", enabled);
+  button.setAttribute("aria-pressed", String(enabled));
+  const label = $("[data-haptics-label]", button);
+  if (label) label.textContent = enabled ? "AN" : "AUS";
+}
+
+function setDifficultyMode(mode) {
+  const next = mode === "heroic" ? "heroic" : "normal";
+  if (state.settings.difficulty === next) return;
+
+  state.settings.difficulty = next;
+  state.boss = RAID.createBoss(state.boss.level, next);
+  const enemy = DUNGEON.createEnemy(state.dungeon.floor, next);
+  state.dungeon.enemyHp = enemy.hp;
+  const stats = DUNGEON.heroStats(state.upgrades);
+  state.dungeon.hp = Math.min(stats.maxHp, Math.max(1, state.dungeon.hp));
+
+  persist();
+  render();
+  updateLoot();
+  audio.playLevelUp();
+  haptic([12, 40, 12]);
+  toast(
+    next === "heroic"
+      ? "Heroic aktiv: 1,75× Preise, härtere Gegner, mehr Beute."
+      : "Casual aktiv: schnellere Quests, günstigere Upgrades.",
+    next === "heroic" ? "magenta" : "green"
+  );
 }
 
 function disarmReset() {
@@ -1025,6 +1125,7 @@ function resetProgress() {
   state = normalizeState(null);
   persist();
   syncSoundUI();
+  syncHapticsUI();
   setTab("quests");
   render();
   updateLoot();
@@ -1042,6 +1143,19 @@ function initSettings() {
     toast(`Sound ${next ? "an" : "aus"}.`, "green");
   });
 
+  $("#btn-haptics")?.addEventListener("click", () => {
+    const next = state.settings.haptics === false;
+    state.settings.haptics = next;
+    persist();
+    syncHapticsUI();
+    if (next) haptic(12);
+    toast(`Haptik ${next ? "an" : "aus"}.`, "green");
+  });
+
+  $$(".mode-btn").forEach((button) => {
+    button.addEventListener("click", () => setDifficultyMode(button.dataset.mode));
+  });
+
   $("#btn-reset")?.addEventListener("click", resetProgress);
 
   $("#btn-export").addEventListener("click", () => exportJSON(state));
@@ -1057,6 +1171,7 @@ function initSettings() {
       state = normalizeState(imported);
       persist();
       syncSoundUI();
+      syncHapticsUI();
       render();
       updateLoot();
       toast("Save-Daten importiert.", "green");
@@ -1103,7 +1218,7 @@ function render() {
   renderSettings();
   syncDifficulty();
 
-  if ($("#shop-modal") && !$("#shop-modal").hidden) renderShop();
+  renderShop();
 }
 
 /* -------------------------------------------------------------------------
@@ -1113,6 +1228,7 @@ function render() {
 function setup() {
   QM.updateStreak(state);
   QM.resetDailyQuests(state);
+  state.bestStreak = Math.max(state.bestStreak, state.streak);
   persist();
 
   categoryControl = initDropdown($('[data-dropdown="category"]'));
@@ -1120,8 +1236,39 @@ function setup() {
   initShop();
   initSettings();
 
-  $$(".tab-nav__btn[data-tab]").forEach((button) => {
+  $$("[data-tab]").forEach((button) => {
     button.addEventListener("click", () => setTab(button.dataset.tab));
+  });
+
+  $$(".rune-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (state.rune === button.dataset.rune) return;
+      state.rune = button.dataset.rune;
+      persist();
+      renderDungeon();
+      audio.playHit();
+      haptic(8);
+    });
+  });
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      const button = event.target.closest?.("button");
+      if (!button || button.disabled) return;
+      button.classList.add("is-pressed");
+      haptic(5);
+    },
+    { passive: true }
+  );
+  ["pointerup", "pointercancel", "pointerleave"].forEach((type) => {
+    document.addEventListener(
+      type,
+      (event) => {
+        event.target.closest?.("button")?.classList.remove("is-pressed");
+      },
+      { passive: true }
+    );
   });
 
   $("#quest-form").addEventListener("submit", addQuest);
@@ -1140,6 +1287,7 @@ function setup() {
   }
 
   syncSoundUI();
+  syncHapticsUI();
   setTab("quests");
   render();
   syncDifficulty();

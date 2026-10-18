@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>QuestLog — Gamified To-Do</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
@@ -24,7 +25,7 @@
       </div>
 
       <section class="player-card" aria-label="Spielerprofil">
-        <button class="avatar-wrap" id="btn-avatar" type="button" aria-haspopup="dialog" aria-controls="shop-modal" aria-label="Kosmetik-Shop öffnen" data-open-shop data-shop-category="cosmetic">
+        <button class="avatar-wrap" id="btn-avatar" type="button" aria-label="Pixel Bazaar: Kosmetik öffnen">
           <span class="avatar-frame" id="avatar-frame" aria-hidden="true"></span>
           <span class="level-badge" data-stat="level">LV 1</span>
         </button>
@@ -44,7 +45,7 @@
               <span class="streak__value" data-stat="streak">0</span>
               <span class="streak__label">Streak</span>
             </span>
-            <button class="wallet" id="btn-shop" type="button" aria-haspopup="dialog" aria-controls="shop-modal" aria-label="Item-Shop öffnen">
+            <button class="wallet" id="btn-shop" type="button" aria-label="Pixel Bazaar öffnen">
               <svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
                 <rect x="2" y="0" width="4" height="1" fill="#ffcd38" />
                 <rect x="1" y="1" width="6" height="6" fill="#ffcd38" />
@@ -94,7 +95,7 @@
         </svg>
         <span>Dungeon &amp; Boss</span>
       </button>
-      <button class="tab-nav__btn" type="button" id="btn-nav-shop" aria-haspopup="dialog" aria-controls="shop-modal" data-open-shop>
+      <button class="tab-nav__btn" type="button" data-tab="shop">
         <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
           <rect x="2" y="4" width="8" height="7" fill="#b8860b"/>
           <rect x="3" y="2" width="2" height="2" fill="#ffcd38"/>
@@ -337,9 +338,14 @@
                   <div class="mini-hp__fill mini-hp__fill--hero" data-dungeon="hero-hp-fill"></div>
                   <span class="mini-hp__label"><span data-dungeon="hero-hp">50</span>/<span data-dungeon="hero-maxhp">50</span> HP</span>
                 </div>
+                <div class="fighter__element">
+                  <span class="element-dot" data-dungeon="hero-element-dot" aria-hidden="true"></span>
+                  <span data-dungeon="hero-element">Feuer</span>
+                </div>
                 <div class="fighter__stats">
                   <span>ANG <b data-dungeon="attack">10</b></span>
                   <span>DEF <b data-dungeon="defense">0</b></span>
+                  <span>KRI <b data-dungeon="crit">5%</b></span>
                 </div>
               </div>
 
@@ -362,21 +368,92 @@
                   <div class="mini-hp__fill mini-hp__fill--enemy" data-dungeon="enemy-hp-fill"></div>
                   <span class="mini-hp__label"><span data-dungeon="enemy-hp">28</span>/<span data-dungeon="enemy-maxhp">28</span> HP</span>
                 </div>
+                <div class="fighter__element">
+                  <span class="element-dot" data-dungeon="enemy-element-dot" aria-hidden="true"></span>
+                  <span data-dungeon="enemy-element">Frost</span>
+                  <span class="element-weak">schwach: <b data-dungeon="enemy-weakness">Sturm</b></span>
+                </div>
                 <div class="fighter__stats">
                   <span>ANG <b data-dungeon="enemy-attack">5</b></span>
+                  <span>AUS <b data-dungeon="enemy-dodge">8%</b></span>
                 </div>
               </div>
 
               <div class="dungeon-damage" data-dungeon="damage" aria-hidden="true">-10</div>
             </div>
 
+            <div class="rune-bar">
+              <span class="rune-bar__label">Rune</span>
+              <div class="rune-picker" role="group" aria-label="Angriffs-Rune wählen">
+                <button class="rune-btn is-active" type="button" data-rune="fire" aria-pressed="true"><span class="element-dot" style="--element:#ff8a3d" aria-hidden="true"></span>Feuer</button>
+                <button class="rune-btn" type="button" data-rune="frost" aria-pressed="false"><span class="element-dot" style="--element:#7fd4ff" aria-hidden="true"></span>Frost</button>
+                <button class="rune-btn" type="button" data-rune="storm" aria-pressed="false"><span class="element-dot" style="--element:#ffcd38" aria-hidden="true"></span>Sturm</button>
+                <button class="rune-btn" type="button" data-rune="shadow" aria-pressed="false"><span class="element-dot" style="--element:#a78bfa" aria-hidden="true"></span>Schatten</button>
+              </div>
+            </div>
+
             <div class="dungeon-actions">
               <button class="btn btn--primary" id="dungeon-attack" type="button">Vorstoß</button>
-              <button class="btn btn--ghost" type="button" data-open-shop data-shop-category="equipment">Upgrades</button>
+              <button class="btn btn--ghost" type="button" data-tab="shop" data-shop-category="equipment">Upgrades</button>
               <span class="dungeon-reward">Belohnung <span class="coin-icon-wrap"><svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="0" width="4" height="1" fill="#ffcd38"/><rect x="1" y="1" width="6" height="6" fill="#ffcd38"/><rect x="2" y="7" width="4" height="1" fill="#ffcd38"/><rect x="2" y="1" width="4" height="1" fill="#ffe37a"/><rect x="5" y="2" width="2" height="4" fill="#b8860b"/><rect x="2" y="6" width="4" height="1" fill="#b8860b"/></svg></span> <span data-dungeon="reward">15</span></span>
             </div>
-            <p class="dungeon-hint" data-dungeon="status">Besiege Gegner, steige tiefer und kaufe Upgrades im Shop.</p>
+            <p class="dungeon-hint" data-dungeon="status">Besiege Gegner, steige tiefer und kaufe Upgrades im Pixel Bazaar.</p>
+            <p class="combat-log" data-dungeon="log" aria-live="polite">Wähle eine Rune, die zur Schwäche des Gegners passt.</p>
           </article>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-shop" data-tab-panel="shop" hidden>
+        <div class="shop-layout">
+          <section class="panel shop-panel" data-panel="shop" aria-labelledby="shop-title">
+            <header class="panel__head shop-head">
+              <div class="shop-head__title">
+                <p class="shop-eyebrow">Pixel Bazaar</p>
+                <h2 class="panel__title" id="shop-title">Items &amp; Upgrades</h2>
+              </div>
+              <span class="wallet wallet--static" aria-label="Goldbestand im Shop">
+                <svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+                  <rect x="2" y="0" width="4" height="1" fill="#ffcd38" />
+                  <rect x="1" y="1" width="6" height="6" fill="#ffcd38" />
+                  <rect x="2" y="7" width="4" height="1" fill="#ffcd38" />
+                  <rect x="2" y="1" width="4" height="1" fill="#ffe37a" />
+                  <rect x="1" y="2" width="1" height="4" fill="#ffe37a" />
+                  <rect x="6" y="2" width="1" height="4" fill="#b8860b" />
+                  <rect x="3" y="2" width="2" height="1" fill="#b8860b" />
+                  <rect x="3" y="3" width="1" height="3" fill="#b8860b" />
+                  <rect x="2" y="6" width="4" height="1" fill="#b8860b" />
+                </svg>
+                <span class="wallet__amount" data-gold>250</span>
+                <span class="wallet__label">Gold</span>
+              </span>
+            </header>
+
+            <div class="shop-tabs" role="group" aria-label="Shop-Kategorien">
+              <button class="shop-tab is-active" type="button" data-shop-tab="equipment" aria-pressed="true">
+                <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="7" y="0" width="2" height="5" fill="#cfd6e6"/><rect x="6" y="1" width="2" height="4" fill="#cfd6e6"/><rect x="5" y="4" width="2" height="2" fill="#ffcd38"/><rect x="4" y="6" width="2" height="2" fill="#7a4a1f"/><rect x="3" y="8" width="5" height="1" fill="#ffcd38"/><rect x="4" y="9" width="3" height="2" fill="#7a4a1f"/></svg>
+                Equipment
+              </button>
+              <button class="shop-tab" type="button" data-shop-tab="booster" aria-pressed="false">
+                <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="5" y="1" width="2" height="3" fill="#cfd6e6"/><rect x="4" y="4" width="4" height="1" fill="#cfd6e6"/><rect x="3" y="5" width="6" height="2" fill="#4eef91"/><rect x="2" y="7" width="8" height="3" fill="#4eef91"/><rect x="3" y="8" width="2" height="1" fill="#83ffba"/></svg>
+                Booster
+              </button>
+              <button class="shop-tab" type="button" data-shop-tab="cosmetic" aria-pressed="false">
+                <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="4" width="8" height="5" fill="#a78bfa"/><rect x="3" y="5" width="2" height="2" fill="#101216"/><rect x="7" y="5" width="2" height="2" fill="#101216"/><rect x="5" y="7" width="2" height="1" fill="#e94560"/><rect x="1" y="5" width="1" height="2" fill="#a78bfa"/><rect x="10" y="5" width="1" height="2" fill="#a78bfa"/></svg>
+                Kosmetik
+              </button>
+              <button class="shop-tab" type="button" data-shop-tab="reward" aria-pressed="false">
+                <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="2" width="8" height="2" fill="#ffcd38"/><rect x="3" y="4" width="7" height="2" fill="#e9a23b"/><rect x="4" y="6" width="5" height="2" fill="#ffcd38"/><rect x="5" y="8" width="3" height="2" fill="#e9a23b"/><rect x="6" y="10" width="1" height="1" fill="#ffcd38"/><rect x="4" y="4" width="1" height="1" fill="#e94560"/><rect x="7" y="5" width="1" height="1" fill="#e94560"/></svg>
+                Rewards
+              </button>
+            </div>
+
+            <div class="shop-meta" id="shop-meta"></div>
+            <div class="shop-grid" id="shop-grid" aria-live="polite"></div>
+
+            <footer class="shop-foot">
+              <p>Gold gibt's für Quests, Boss-Kills, Elite-Etagen und Idle-Loot. Preise steigen pro Stufe exponentiell.</p>
+            </footer>
+          </section>
         </div>
       </section>
 
@@ -395,6 +472,35 @@
               </div>
               <button class="toggle-btn is-on" id="btn-sound" type="button" aria-pressed="true">
                 <span data-sound-label>AN</span>
+              </button>
+            </article>
+
+            <article class="setting-card setting-card--wide">
+              <div>
+                <h3>Game-Difficulty</h3>
+                <p>Casual ist schneller und großzügiger. Heroic verlangt echtes Grinding.</p>
+              </div>
+              <div class="mode-toggle" role="group" aria-label="Game-Difficulty wählen">
+                <button class="mode-btn is-active" type="button" data-mode="normal" aria-pressed="true">
+                  <span class="mode-btn__dot" aria-hidden="true"></span>
+                  <span class="mode-btn__label">Casual / Normal</span>
+                  <span class="mode-btn__note">mehr Gold · milde Preise</span>
+                </button>
+                <button class="mode-btn" type="button" data-mode="heroic" aria-pressed="false">
+                  <span class="mode-btn__dot mode-btn__dot--red" aria-hidden="true"></span>
+                  <span class="mode-btn__label">Heroic / Grind</span>
+                  <span class="mode-btn__note">harte Dungeons · 1,75×</span>
+                </button>
+              </div>
+            </article>
+
+            <article class="setting-card">
+              <div>
+                <h3>Haptik</h3>
+                <p>Kurzes Vibrations-Feedback bei Buttons auf dem Smartphone.</p>
+              </div>
+              <button class="toggle-btn is-on" id="btn-haptics" type="button" aria-pressed="true">
+                <span data-haptics-label>AN</span>
               </button>
             </article>
 
@@ -418,11 +524,15 @@
             </article>
           </div>
 
-          <div class="settings-stats">
+          <div class="settings-stats" aria-label="Spieler-Statistiken">
             <span>Quests erledigt <b data-settings="completed">0</b></span>
             <span>Tiefste Etage <b data-settings="floor">1</b></span>
             <span>Gold <b data-settings="gold">0</b></span>
             <span>Level <b data-settings="level">1</b></span>
+            <span>Loot gesamt <b data-settings="loot">0</b></span>
+            <span>Monster besiegt <b data-settings="monsters">0</b></span>
+            <span>Streak-Rekord <b data-settings="bestStreak">0</b></span>
+            <span>Boss-Level <b data-settings="bossLevel">1</b></span>
           </div>
 
           <input type="file" id="import-file" accept="application/json" hidden />
@@ -435,50 +545,6 @@
       <span class="app-footer__dot" aria-hidden="true"></span>
       <span>Made for heroes with to-do lists</span>
     </footer>
-  </div>
-
-  <div class="modal" id="shop-modal" hidden>
-    <div class="modal__backdrop" data-shop-close></div>
-    <section class="modal__panel shop" role="dialog" aria-modal="true" aria-labelledby="shop-title">
-      <header class="modal__head">
-        <div>
-          <p class="modal__eyebrow">Pixel Bazaar</p>
-          <h2 class="modal__title" id="shop-title">Item-Shop</h2>
-        </div>
-        <div class="modal__actions">
-          <span class="wallet wallet--static" aria-label="Goldbestand im Shop">
-            <svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
-              <rect x="2" y="0" width="4" height="1" fill="#ffcd38" />
-              <rect x="1" y="1" width="6" height="6" fill="#ffcd38" />
-              <rect x="2" y="7" width="4" height="1" fill="#ffcd38" />
-              <rect x="2" y="1" width="4" height="1" fill="#ffe37a" />
-              <rect x="1" y="2" width="1" height="4" fill="#ffe37a" />
-              <rect x="6" y="2" width="1" height="4" fill="#b8860b" />
-              <rect x="3" y="2" width="2" height="1" fill="#b8860b" />
-              <rect x="3" y="3" width="1" height="3" fill="#b8860b" />
-              <rect x="2" y="6" width="4" height="1" fill="#b8860b" />
-            </svg>
-            <span class="wallet__amount" data-gold>250</span>
-            <span class="wallet__label">Gold</span>
-          </span>
-          <button class="modal__close" id="shop-close" type="button" aria-label="Shop schließen">✕</button>
-        </div>
-      </header>
-
-      <div class="shop-tabs" role="group" aria-label="Shop-Kategorien">
-        <button class="shop-tab is-active" type="button" data-shop-tab="equipment" aria-pressed="true">Equipment</button>
-        <button class="shop-tab" type="button" data-shop-tab="booster" aria-pressed="false">Booster</button>
-        <button class="shop-tab" type="button" data-shop-tab="cosmetic" aria-pressed="false">Kosmetik</button>
-        <button class="shop-tab" type="button" data-shop-tab="reward" aria-pressed="false">Rewards</button>
-      </div>
-
-      <div class="shop-meta" id="shop-meta"></div>
-      <div class="shop-grid" id="shop-grid" aria-live="polite"></div>
-
-      <footer class="shop-foot">
-        <p>Gold gibt's für Quests, Boss-Kills, Dungeon-Etagen und Idle-Loot.</p>
-      </footer>
-    </section>
   </div>
 
   <div class="levelup-banner" id="levelup-banner" role="status" aria-live="polite" hidden>

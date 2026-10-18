@@ -1,20 +1,21 @@
-const CACHE = "questlog-v4";
+const CACHE = "questlog-v9";
 const ASSETS = [
   "/", "/index.html", "/manifest.json",
   "/css/styles.css",
   "/js/app.js", "/js/storage.js", "/js/audio.js", "/js/quest-manager.js",
-  "/js/shop.js", "/js/raid.js", "/js/dungeon.js"
+  "/js/shop.js", "/js/raid.js", "/js/dungeon.js",
+  "/icons/icon-192.png", "/icons/icon-512.png"
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 

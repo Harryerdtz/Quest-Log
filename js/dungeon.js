@@ -1,4 +1,4 @@
-// dungeon.js — dungeon crawler, equipment stats and floor progression
+// dungeon.js — dungeon crawler, equipment stats, elements and difficulty balancing
 const icon = (content) =>
   `<svg class="shop-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${content}</svg>`;
 
@@ -6,7 +6,7 @@ export const UPGRADES = [
   {
     id: "weapon",
     name: "Klinge",
-    desc: "+4 Angriff pro Stufe. Schneller durch Gegnerwellen.",
+    desc: "+3 Angriff pro Stufe. Kernschaden gegen jede Etage.",
     baseCost: 60,
     stat: "ANG",
     icon: icon(`
@@ -21,8 +21,8 @@ export const UPGRADES = [
   {
     id: "armor",
     name: "Rüstung",
-    desc: "+2 Verteidigung und +4 max. HP pro Stufe.",
-    baseCost: 70,
+    desc: "+2 Verteidigung, +4 HP und +1% Blockchance pro Stufe.",
+    baseCost: 75,
     stat: "DEF",
     icon: icon(`
       <rect x="5" y="3" width="6" height="2" fill="#cfd6e6"/>
@@ -35,9 +35,9 @@ export const UPGRADES = [
   {
     id: "strength",
     name: "Stärke",
-    desc: "+2 Angriff pro Stufe. Für kritische Treffer.",
+    desc: "+2 Angriff und +1,5% Kritchance pro Stufe.",
     baseCost: 50,
-    stat: "ANG",
+    stat: "KRI",
     icon: icon(`
       <rect x="6" y="2" width="4" height="5" fill="#f4c99a"/>
       <rect x="5" y="7" width="6" height="3" fill="#e94560"/>
@@ -49,7 +49,7 @@ export const UPGRADES = [
   {
     id: "vitality",
     name: "Vitalität",
-    desc: "+12 max. HP pro Stufe. Mehr Etagen pro Lauf.",
+    desc: "+10 max. HP pro Stufe. Überlebt tiefere Etagen.",
     baseCost: 55,
     stat: "HP",
     icon: icon(`
@@ -64,6 +64,18 @@ export const UPGRADES = [
   },
 ];
 
+export const ELEMENTS = {
+  fire: { id: "fire", name: "Feuer", color: "#ff8a3d", weak: "frost", icon: "▲" },
+  frost: { id: "frost", name: "Frost", color: "#7fd4ff", weak: "storm", icon: "❄" },
+  storm: { id: "storm", name: "Sturm", color: "#ffcd38", weak: "shadow", icon: "⚡" },
+  shadow: { id: "shadow", name: "Schatten", color: "#a78bfa", weak: "fire", icon: "☠" },
+};
+
+export const RUNES = Object.values(ELEMENTS).map((element) => ({
+  ...element,
+  label: element.name.toUpperCase(),
+}));
+
 const ENEMY_NAMES = [
   "Goblin-Schreiber",
   "Sumpf-Slime",
@@ -74,8 +86,25 @@ const ENEMY_NAMES = [
   "Montags-Ratte",
 ];
 
-export function upgradeCost(upgrade, level) {
-  return Math.round(upgrade.baseCost * Math.pow(1.55, level));
+const ELITE_NAMES = [
+  "Archiv-Wächter",
+  "Deadline-Koloss",
+  "Steuer-Drache",
+  "Meeting-Titan",
+  "Overflow-Oger",
+];
+
+const ELEMENT_ORDER = ["fire", "frost", "storm", "shadow"];
+
+export function isHeroic(mode) {
+  return mode === "heroic";
+}
+
+export function upgradeCost(upgrade, level, mode = "normal") {
+  // Exponential: 1.55x per level (Heroic: 1.75x) -> real grinding.
+  const growth = isHeroic(mode) ? 1.75 : 1.55;
+  const exponent = Math.max(0, Math.floor(level));
+  return Math.round(upgrade.baseCost * Math.pow(growth, exponent));
 }
 
 export function heroStats(upgrades = {}) {
@@ -84,45 +113,102 @@ export function heroStats(upgrades = {}) {
   const strength = Math.max(0, upgrades.strength || 0);
   const vitality = Math.max(0, upgrades.vitality || 0);
   return {
-    attack: 10 + weapon * 4 + strength * 2,
+    attack: 10 + weapon * 3 + strength * 2,
     defense: armor * 2,
-    maxHp: 50 + vitality * 12 + armor * 4,
+    maxHp: 50 + vitality * 10 + armor * 4,
+    crit: Math.min(0.45, 0.05 + strength * 0.015),
+    block: Math.min(0.3, 0.03 + armor * 0.01),
   };
 }
 
-export function createEnemy(floor) {
+export function enemyElement(floor) {
+  return ELEMENT_ORDER[(Math.max(1, Math.floor(floor)) - 1) % ELEMENT_ORDER.length];
+}
+
+export function elementMultiplier(rune, enemy) {
+  if (!enemy?.weakness) return 1;
+  if (rune === enemy.weakness) return 1.5;
+  if (rune === enemy.element) return 0.7;
+  return 1;
+}
+
+export function createEnemy(floor, mode = "normal") {
   const safeFloor = Math.max(1, Math.floor(floor));
-  const boss = safeFloor % 5 === 0;
+  const heroic = isHeroic(mode);
+  const elite = safeFloor % 5 === 0;
   const type = ENEMY_NAMES[(safeFloor - 1) % ENEMY_NAMES.length];
-  const hp = Math.round((18 + safeFloor * 10) * (boss ? 1.9 : 1));
+  const eliteName = ELITE_NAMES[Math.floor(safeFloor / 5 - 1) % ELITE_NAMES.length];
+  const element = enemyElement(safeFloor);
+  const weakness = ELEMENTS[element].weak;
+  const growth = Math.pow(1.12, Math.max(0, safeFloor - 4));
+  const hpBase = (20 + safeFloor * 8) * growth * (elite ? 2.2 : 1);
+  const attackBase = (3 + safeFloor * 1.8) * Math.pow(1.06, Math.max(0, safeFloor - 4)) + (elite ? 2 : 0);
+  const hp = Math.round(hpBase * (heroic ? 1.55 : 1));
+  const attack = Math.round(attackBase * (heroic ? 1.35 : 1));
+  const reward = Math.round((8 + safeFloor * 4) * (elite ? 2.4 : 1) * (heroic ? 1.6 : 1));
+
   return {
     floor: safeFloor,
-    boss,
-    name: boss ? `Etagenboss: ${type}` : type,
+    elite,
+    boss: elite,
+    name: elite ? `Elite: ${eliteName}` : type,
     hp,
-    attack: 3 + safeFloor * 2 + (boss ? 3 : 0),
-    reward: 10 + safeFloor * 5 + (boss ? 30 : 0),
+    attack,
+    reward,
+    element,
+    weakness,
+    dodge: Math.min(0.2, 0.04 + safeFloor * 0.008 + (heroic ? 0.04 : 0)),
+    crit: Math.min(0.25, 0.03 + safeFloor * 0.006),
   };
 }
 
-export function attackDungeon(state) {
+export function attackDungeon(state, mode = "normal") {
   const stats = heroStats(state.upgrades);
   const floor = Math.max(1, state.dungeon.floor);
-  const enemy = createEnemy(floor);
+  const enemy = createEnemy(floor, mode);
   const startingHp = Number.isFinite(state.dungeon.enemyHp) ? state.dungeon.enemyHp : enemy.hp;
-  const damage = stats.attack;
+  const rune = ELEMENTS[state.rune] ? state.rune : "fire";
+  const multiplier = elementMultiplier(rune, enemy);
+
+  let damage = Math.round(stats.attack * multiplier);
+  const crit = Math.random() < stats.crit;
+  if (crit) damage = Math.round(damage * 1.9);
+  const dodged = Math.random() < enemy.dodge;
+  if (dodged) damage = 0;
+
   const enemyHp = Math.max(0, startingHp - damage);
 
   if (enemyHp <= 0) {
     state.gold += enemy.reward;
     state.dungeon.floor = floor + 1;
-    const nextEnemy = createEnemy(floor + 1);
+    const nextEnemy = createEnemy(floor + 1, mode);
     state.dungeon.enemyHp = nextEnemy.hp;
-    state.dungeon.hp = Math.min(stats.maxHp, Math.max(1, state.dungeon.hp) + Math.round(stats.maxHp * 0.2));
-    return { type: "floor", damage, enemy, gold: enemy.reward, nextEnemy, heroHp: state.dungeon.hp, stats };
+    const heal = Math.round(stats.maxHp * 0.22);
+    state.dungeon.hp = Math.min(stats.maxHp, Math.max(1, state.dungeon.hp) + heal);
+    return {
+      type: enemy.elite ? "elite" : "floor",
+      damage,
+      crit,
+      dodged,
+      multiplier,
+      enemy,
+      gold: enemy.reward,
+      nextEnemy,
+      heroHp: state.dungeon.hp,
+      heal,
+      slain: 1,
+      stats,
+    };
   }
 
-  const counter = Math.max(1, enemy.attack - stats.defense);
+  const blocked = Math.random() < stats.block;
+  const enemyCrit = Math.random() < enemy.crit;
+  let counter = enemy.attack - stats.defense;
+  if (blocked) counter *= 0.5;
+  if (enemyCrit) counter *= 1.5;
+  counter = Math.max(1, Math.round(counter));
+  if (dodged) counter = 0;
+
   const heroHp = Math.max(0, state.dungeon.hp - counter);
   state.dungeon.enemyHp = enemyHp;
   state.dungeon.hp = heroHp;
@@ -130,10 +216,32 @@ export function attackDungeon(state) {
   if (heroHp <= 0) {
     state.dungeon.hp = stats.maxHp;
     state.dungeon.floor = Math.max(1, floor - 1);
-    const fallback = createEnemy(state.dungeon.floor);
+    const fallback = createEnemy(state.dungeon.floor, mode);
     state.dungeon.enemyHp = fallback.hp;
-    return { type: "down", damage, counter, enemy, heroHp: state.dungeon.hp, stats };
+    return {
+      type: "down",
+      damage,
+      crit,
+      dodged,
+      multiplier,
+      counter: 0,
+      enemy,
+      heroHp: state.dungeon.hp,
+      stats,
+    };
   }
 
-  return { type: "hit", damage, counter, enemy, heroHp, stats };
+  return {
+    type: "hit",
+    damage,
+    crit,
+    dodged,
+    multiplier,
+    counter,
+    blocked,
+    enemyCrit,
+    enemy,
+    heroHp,
+    stats,
+  };
 }
