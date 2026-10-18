@@ -62,7 +62,76 @@ export const UPGRADES = [
       <rect x="6" y="5" width="2" height="2" fill="#ff9fae"/>
     `),
   },
+  {
+    id: "wand",
+    name: "Runenstab",
+    desc: "+2 Angriff, +2% Krit und +5% Elementarschaden pro Stufe.",
+    baseCost: 80,
+    stat: "MAG",
+    icon: icon(`
+      <rect x="7" y="1" width="2" height="2" fill="#a78bfa"/>
+      <rect x="6" y="3" width="4" height="1" fill="#a78bfa"/>
+      <rect x="7" y="4" width="2" height="7" fill="#7a4a1f"/>
+      <rect x="8" y="5" width="1" height="5" fill="#a96a2c"/>
+      <rect x="6" y="11" width="4" height="2" fill="#ffcd38"/>
+    `),
+  },
+  {
+    id: "amulet",
+    name: "Amulett",
+    desc: "+6 max. HP und +5% Goldfund pro Stufe.",
+    baseCost: 90,
+    stat: "GLD",
+    icon: icon(`
+      <rect x="6" y="1" width="1" height="2" fill="#cfd6e6"/>
+      <rect x="9" y="1" width="1" height="2" fill="#cfd6e6"/>
+      <rect x="5" y="3" width="6" height="1" fill="#cfd6e6"/>
+      <rect x="6" y="4" width="4" height="3" fill="#4eef91"/>
+      <rect x="7" y="5" width="2" height="1" fill="#83ffba"/>
+      <rect x="7" y="7" width="2" height="3" fill="#ffcd38"/>
+      <rect x="6" y="10" width="4" height="1" fill="#b8860b"/>
+    `),
+  },
+  {
+    id: "shield",
+    name: "Turmschild",
+    desc: "+2 Verteidigung und +2% Blockchance pro Stufe.",
+    baseCost: 85,
+    stat: "DEF",
+    icon: icon(`
+      <rect x="4" y="2" width="8" height="2" fill="#cfd6e6"/>
+      <rect x="3" y="4" width="10" height="5" fill="#8b90a6"/>
+      <rect x="4" y="9" width="8" height="2" fill="#6c7488"/>
+      <rect x="6" y="11" width="4" height="2" fill="#6c7488"/>
+      <rect x="7" y="4" width="2" height="5" fill="#ffcd38"/>
+      <rect x="5" y="5" width="2" height="2" fill="#ffcd38"/>
+      <rect x="9" y="5" width="2" height="2" fill="#ffcd38"/>
+    `),
+  },
+  {
+    id: "ring",
+    name: "Siegelring",
+    desc: "+1 Angriff, +1% Krit und +1% Blockchance pro Stufe.",
+    baseCost: 95,
+    stat: "KRI",
+    icon: icon(`
+      <rect x="5" y="4" width="6" height="2" fill="#ffcd38"/>
+      <rect x="4" y="6" width="2" height="4" fill="#b8860b"/>
+      <rect x="10" y="6" width="2" height="4" fill="#b8860b"/>
+      <rect x="6" y="10" width="4" height="2" fill="#b8860b"/>
+      <rect x="7" y="1" width="2" height="2" fill="#e94560"/>
+      <rect x="6" y="2" width="4" height="2" fill="#e94560"/>
+      <rect x="7" y="3" width="2" height="1" fill="#ff9fae"/>
+    `),
+  },
 ];
+
+export const ELEMENT_EFFECTS = {
+  fire: "Feuer: Brand — 2 Runden Schaden über Zeit",
+  frost: "Frost: verlangsamt — 35% Chance, den Konter einzufrieren",
+  storm: "Sturm: +15% Kritchance auf Blitzeinschläge",
+  shadow: "Schatten: 25% Lebensraub pro Treffer",
+};
 
 export const ELEMENTS = {
   fire: { id: "fire", name: "Feuer", color: "#ff8a3d", weak: "frost", icon: "▲" },
@@ -176,23 +245,33 @@ export function isHeroic(mode) {
 }
 
 export function upgradeCost(upgrade, level, mode = "normal") {
-  // Exponential: 1.55x per level (Heroic: 1.75x) -> real grinding.
-  const growth = isHeroic(mode) ? 1.75 : 1.55;
+  // Exponential base curve, with a flat +75% price tag in Heroic.
   const exponent = Math.max(0, Math.floor(level));
-  return Math.round(upgrade.baseCost * Math.pow(growth, exponent));
+  const base = upgrade.baseCost * Math.pow(1.55, exponent);
+  return Math.round(base * (isHeroic(mode) ? 1.75 : 1));
 }
 
-export function heroStats(upgrades = {}) {
+export function heroStats(upgrades = {}, buff = {}) {
   const weapon = Math.max(0, upgrades.weapon || 0);
   const armor = Math.max(0, upgrades.armor || 0);
   const strength = Math.max(0, upgrades.strength || 0);
   const vitality = Math.max(0, upgrades.vitality || 0);
+  const wand = Math.max(0, upgrades.wand || 0);
+  const amulet = Math.max(0, upgrades.amulet || 0);
+  const shield = Math.max(0, upgrades.shield || 0);
+  const ring = Math.max(0, upgrades.ring || 0);
+  const skin = buff && typeof buff === "object" ? buff : {};
+  const num = (value) => (Number.isFinite(value) ? value : 0);
+
   return {
-    attack: 10 + weapon * 3 + strength * 2,
-    defense: armor * 2,
-    maxHp: 50 + vitality * 10 + armor * 4,
-    crit: Math.min(0.45, 0.05 + strength * 0.015),
-    block: Math.min(0.3, 0.03 + armor * 0.01),
+    attack: 10 + weapon * 3 + strength * 2 + wand * 2 + ring,
+    defense: armor * 2 + shield * 2 + num(skin.defense),
+    maxHp: 50 + vitality * 10 + armor * 4 + amulet * 6 + num(skin.maxHp),
+    crit: Math.min(0.6, 0.05 + strength * 0.015 + wand * 0.02 + ring * 0.01 + num(skin.crit)),
+    block: Math.min(0.45, 0.03 + armor * 0.01 + shield * 0.02 + ring * 0.01 + num(skin.block)),
+    dodge: Math.min(0.45, 0.02 + num(skin.dodge)),
+    goldFind: 1 + amulet * 0.05 + num(skin.goldFind),
+    elementPower: wand * 0.05 + num(skin.elementPower),
   };
 }
 
@@ -201,16 +280,16 @@ export function enemyElement(floor) {
 }
 
 export function elementMultiplier(rune, enemy) {
-  if (!enemy?.weakness) return 1;
+  if (!rune || !enemy?.weakness) return 1;
   if (rune === enemy.weakness) return 1.5;
   if (rune === enemy.element) return 0.7;
   return 1;
 }
 
-export function createEnemy(floor, mode = "normal") {
+export function createEnemy(floor, mode = "normal", options = {}) {
   const safeFloor = Math.max(1, Math.floor(floor));
   const heroic = isHeroic(mode);
-  const elite = safeFloor % 5 === 0;
+  const elite = Boolean(options.elite);
   const element = enemyElement(safeFloor);
   const names = ENEMY_NAMES[element];
   const type = names[(safeFloor - 1) % names.length];
@@ -230,6 +309,7 @@ export function createEnemy(floor, mode = "normal") {
     boss: elite,
     name: elite ? `Elite: ${eliteName}` : type,
     hp,
+    maxHp: hp,
     attack,
     reward,
     element,
@@ -240,79 +320,176 @@ export function createEnemy(floor, mode = "normal") {
   };
 }
 
-export function attackDungeon(state, mode = "normal") {
-  const stats = heroStats(state.upgrades);
-  const floor = Math.max(1, state.dungeon.floor);
-  const enemy = createEnemy(floor, mode);
-  const startingHp = Number.isFinite(state.dungeon.enemyHp) ? state.dungeon.enemyHp : enemy.hp;
-  const rune = ELEMENTS[state.rune] ? state.rune : "fire";
+export function createRoomEnemy(floor, roomType, mode = "normal") {
+  const base = createEnemy(floor, mode);
+  if (roomType !== "boss") {
+    return { ...base, bossRoom: false };
+  }
+
+  const safeFloor = Math.max(1, Math.floor(floor));
+  const elite = safeFloor % 5 === 0;
+  const elitePool = ELITE_NAMES[base.element];
+  const eliteName = elitePool[Math.floor(safeFloor / 5 - 1) % elitePool.length];
+  const hp = Math.round(base.hp * (elite ? 2.6 : 1.55));
+  const attack = Math.round(base.attack * (elite ? 1.25 : 1.1));
+  const reward = Math.round(base.reward * (elite ? 2.3 : 1.5));
+
+  return {
+    ...base,
+    boss: true,
+    bossRoom: true,
+    elite,
+    name: elite ? `Etagenboss: ${eliteName}` : `Raumwächter: ${base.name}`,
+    hp,
+    maxHp: hp,
+    attack,
+    reward,
+    sprite: enemySprite(base.element, true),
+  };
+}
+
+export function attackDungeon(state, mode = "normal", buff = {}) {
+  const dungeon = state.dungeon;
+  const roomType = dungeon?.types?.[dungeon.pos] || "monster";
+  if (
+    (roomType !== "monster" && roomType !== "boss") ||
+    dungeon?.cleared?.[dungeon.pos]
+  ) {
+    return { type: "idle", roomType };
+  }
+
+  const stats = heroStats(state.upgrades, buff);
+  const floor = Math.max(1, dungeon.floor || 1);
+  const enemy = createRoomEnemy(floor, roomType, mode);
+  const rune = Array.isArray(state.runes) && state.runes.includes(state.rune) ? state.rune : null;
   const multiplier = elementMultiplier(rune, enemy);
+  const effects = [];
 
-  let damage = Math.round(stats.attack * multiplier);
-  const crit = Math.random() < stats.crit;
-  if (crit) damage = Math.round(damage * 1.9);
-  const dodged = Math.random() < enemy.dodge;
-  if (dodged) damage = 0;
+  let enemyHp = Number.isFinite(dungeon.enemyHp) && dungeon.enemyHp > 0 ? dungeon.enemyHp : enemy.hp;
+  enemyHp = Math.min(enemy.hp, enemyHp);
+  let burnDamage = 0;
+  if (dungeon.burn > 0) {
+    burnDamage = Math.max(1, Math.round(enemy.hp * 0.06 + stats.attack * 0.2));
+    enemyHp = Math.max(0, enemyHp - burnDamage);
+    dungeon.burn = Math.max(0, dungeon.burn - 1);
+    effects.push(`Brand −${burnDamage}`);
+  }
 
-  const enemyHp = Math.max(0, startingHp - damage);
+  let damage = 0;
+  let crit = false;
+  let dodged = false;
+  if (enemyHp > 0) {
+    const critChance = stats.crit + (rune === "storm" ? 0.15 : 0);
+    crit = Math.random() < critChance;
+    damage = Math.round(stats.attack * multiplier * (rune ? 1 + stats.elementPower : 1));
+    if (crit) damage = Math.round(damage * 1.9);
+    dodged = Math.random() < enemy.dodge;
+    if (dodged) damage = 0;
+
+    if (damage > 0 && enemy.boss && state.boosterBoss > 0) {
+      damage = Math.round(damage * 1.5);
+      state.boosterBoss = Math.max(0, state.boosterBoss - 1);
+      effects.push("Boss-Trank +50%");
+    }
+
+    enemyHp = Math.max(0, enemyHp - damage);
+
+    if (damage > 0 && rune) {
+      if (rune === "fire") {
+        dungeon.burn = 2;
+        effects.push("Brand entfacht (2)");
+      } else if (rune === "frost" && Math.random() < 0.35) {
+        dungeon.frozen = true;
+        effects.push("Gegner eingefroren");
+      } else if (rune === "storm" && crit) {
+        effects.push("Sturm-Krit!");
+      } else if (rune === "shadow") {
+        const steal = Math.round(damage * 0.25);
+        dungeon.hp = Math.min(stats.maxHp, dungeon.hp + steal);
+        effects.push(`Lebensraub +${steal}`);
+      }
+    }
+  }
 
   if (enemyHp <= 0) {
-    state.gold += enemy.reward;
-    state.dungeon.floor = floor + 1;
-    state.deepestFloor = Math.max(Number.isFinite(state.deepestFloor) ? state.deepestFloor : 1, state.dungeon.floor);
-    const nextEnemy = createEnemy(floor + 1, mode);
-    state.dungeon.enemyHp = nextEnemy.hp;
+    dungeon.cleared[dungeon.pos] = true;
+    dungeon.enemyHp = 0;
+    dungeon.burn = 0;
+    dungeon.frozen = false;
+    const gold = Math.round(enemy.reward * stats.goldFind);
+    state.gold += gold;
     const heal = Math.round(stats.maxHp * 0.22);
-    state.dungeon.hp = Math.min(stats.maxHp, Math.max(1, state.dungeon.hp) + heal);
+    dungeon.hp = Math.min(stats.maxHp, Math.max(1, dungeon.hp) + heal);
     return {
-      type: enemy.elite ? "elite" : "floor",
+      type: enemy.boss ? (enemy.elite ? "elite" : "boss") : "monster",
+      roomType,
+      boss: enemy.boss,
+      elite: enemy.elite,
       damage,
+      burnDamage,
       crit,
       dodged,
       multiplier,
       enemy,
-      gold: enemy.reward,
-      nextEnemy,
-      heroHp: state.dungeon.hp,
+      gold,
       heal,
+      heroHp: dungeon.hp,
       slain: 1,
+      rune,
       stats,
+      effects,
     };
   }
 
+  const frozen = Boolean(dungeon.frozen);
+  const heroDodged = Math.random() < stats.dodge;
   const blocked = Math.random() < stats.block;
   const enemyCrit = Math.random() < enemy.crit;
-  let counter = enemy.attack - stats.defense;
-  if (blocked) counter *= 0.5;
-  if (enemyCrit) counter *= 1.5;
-  counter = Math.max(1, Math.round(counter));
-  if (dodged) counter = 0;
+  let counter = Math.max(1, Math.round(enemy.attack - stats.defense));
+  if (blocked) counter = Math.round(counter * 0.5);
+  if (enemyCrit) counter = Math.round(counter * 1.5);
+  if (frozen) {
+    counter = 0;
+    dungeon.frozen = false;
+    effects.push("Eingefroren: kein Konter");
+  }
+  if (heroDodged) {
+    counter = 0;
+    effects.push("Angriff ausgewichen");
+  }
 
-  const heroHp = Math.max(0, state.dungeon.hp - counter);
-  state.dungeon.enemyHp = enemyHp;
-  state.dungeon.hp = heroHp;
+  dungeon.enemyHp = enemyHp;
+  dungeon.hp = Math.max(0, dungeon.hp - counter);
 
-  if (heroHp <= 0) {
-    state.dungeon.hp = stats.maxHp;
-    state.dungeon.floor = Math.max(1, floor - 1);
-    const fallback = createEnemy(state.dungeon.floor, mode);
-    state.dungeon.enemyHp = fallback.hp;
+  if (dungeon.hp <= 0) {
+    dungeon.hp = stats.maxHp;
+    dungeon.pos = 0;
+    dungeon.visited[0] = true;
+    dungeon.enemyHp = 0;
+    dungeon.burn = 0;
+    dungeon.frozen = false;
     return {
       type: "down",
+      roomType,
       damage,
+      burnDamage,
       crit,
       dodged,
       multiplier,
       counter: 0,
       enemy,
-      heroHp: state.dungeon.hp,
+      heroHp: dungeon.hp,
+      rune,
       stats,
+      effects,
     };
   }
 
   return {
     type: "hit",
+    roomType,
     damage,
+    burnDamage,
     crit,
     dodged,
     multiplier,
@@ -320,7 +497,9 @@ export function attackDungeon(state, mode = "normal") {
     blocked,
     enemyCrit,
     enemy,
-    heroHp,
+    heroHp: dungeon.hp,
+    rune,
     stats,
+    effects,
   };
 }

@@ -247,6 +247,14 @@ try {
   await navigate(`/index.html?e2e=${Date.now()}`);
   await evaluate("localStorage.clear()");
   await navigate(`/index.html?e2e=${Date.now()}`);
+  await evaluate(stateExpression(`(state) => {
+    state.gold = 5000;
+    state.runes = ["fire", "frost", "storm", "shadow"];
+    state.rune = "frost";
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
 
   // --- Structure -------------------------------------------------------------
   const structure = await evaluate(`(() => ({
@@ -281,7 +289,7 @@ try {
       grid: getComputedStyle(document.querySelector('#shop-grid')).gridTemplateColumns.split(' ').length
     };
   })()`);
-  check("Buying an avatar deducts gold", shop.after === shop.before - 120, `${shop.before} -> ${shop.after}`);
+  check("Buying an avatar deducts gold", shop.after === shop.before - 650, `${shop.before} -> ${shop.after}`);
   check("Bought avatar can be equipped", shop.owned && shop.equipped === "avatar_mage" && shop.frame === "avatar_mage");
   check("Shop grid is two columns on mobile", shop.grid === 2, String(shop.grid));
 
@@ -308,12 +316,52 @@ try {
   check("Quest is created and completed", quest.quests === 1 && quest.done);
   check("Completion grants XP and damages the boss", quest.xp > 0 && quest.bossAfter < quest.bossBefore);
 
-  // --- Elite floor + elemental sprite ---------------------------------------
+  // --- Room-by-room exploration ---------------------------------------------
+  await evaluate(stateExpression(`(state) => {
+    state.dungeon = {
+      floor: 2,
+      size: 3,
+      types: ["start", "monster", "treasure", "merchant", "trap", "altar", "monster", "monster", "boss"],
+      pos: 0,
+      visited: [true, false, false, false, false, false, false, false, false],
+      cleared: [true, false, false, false, false, false, false, false, false],
+      hp: 50,
+      enemyHp: 0,
+      burn: 0,
+      frozen: false
+    };
+    localStorage.setItem('questlog_state_v1', JSON.stringify(state));
+    return true;
+  }`));
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const explore = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    document.querySelector('[data-move="right"]').click();
+    return {
+      roomType: document.querySelector('#room-card').dataset.roomType,
+      arenaHidden: document.querySelector('#dungeon-arena').hidden,
+      currentIndex: document.querySelector('.map-cell.is-current')?.dataset.mapIndex,
+      enemyName: document.querySelector('[data-dungeon="enemy-name"]').textContent.trim()
+    };
+  })()`);
+  check("Moving with the DPad enters the next room", explore.currentIndex === "1", String(explore.currentIndex));
+  check("Monster room opens the combat arena", explore.roomType === "monster" && !explore.arenaHidden, explore.enemyName);
+
+  // --- Shattered map + elite floor + elemental sprite -----------------------
   await evaluate(stateExpression(`(state) => {
     state.gold = 500;
-    state.dungeon.floor = 5;
-    state.dungeon.hp = 50;
-    state.dungeon.enemyHp = 1;
+    state.dungeon = {
+      floor: 5,
+      size: 3,
+      types: ["start", "boss", "monster", "treasure", "monster", "merchant", "trap", "altar", "monster"],
+      pos: 1,
+      visited: [true, true, false, false, false, false, false, false, false],
+      cleared: [true, false, false, false, false, false, false, false, false],
+      hp: 50,
+      enemyHp: 1,
+      burn: 0,
+      frozen: false
+    };
     state.deepestFloor = 5;
     state.lastEliteBonusDate = null;
     localStorage.setItem('questlog_state_v1', JSON.stringify(state));
@@ -330,9 +378,17 @@ try {
       crown: !!sprite.querySelector('.enemy-crown'),
       daily: document.querySelector('[data-dungeon="elite-daily"]').textContent.trim(),
       weakness: document.querySelector('[data-dungeon="enemy-weakness"]').textContent.trim(),
-      goldBefore: Number(document.querySelector('.wallet__amount').textContent)
+      goldBefore: Number(document.querySelector('.wallet__amount').textContent),
+      mapCells: document.querySelectorAll('.map-cell').length,
+      dpadButtons: document.querySelectorAll('.dpad__btn').length,
+      roomType: document.querySelector('#room-card').dataset.roomType,
+      attackLabel: document.querySelector('#dungeon-attack').textContent.trim()
     };
   })()`);
+  check("Map renders one tile per room", eliteUi.mapCells === 9, String(eliteUi.mapCells));
+  check("DPad has four movement directions", eliteUi.dpadButtons === 4, String(eliteUi.dpadButtons));
+  check("Boss room starts combat on entry", eliteUi.roomType === "boss");
+  check("Attack button uses German terminology", eliteUi.attackLabel === "Angriff", eliteUi.attackLabel);
   check("Elite uses an elemental sprite and crown", eliteUi.element === "fire" && eliteUi.crown, eliteUi.element);
   check("Daily elite bonus is advertised", eliteUi.daily.includes("150"), eliteUi.daily);
 
@@ -340,7 +396,7 @@ try {
   await evaluate(`document.querySelector('.rune-btn[data-rune="${runeMap[eliteUi.weakness]}"]').click()`);
   await evaluate("window.__e2eRandom = Math.random; Math.random = () => 0.5");
   const eliteFight = await evaluate(`(() => {
-    for (let i = 0; i < 10 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 5; i += 1) {
+    for (let i = 0; i < 20 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 5; i += 1) {
       document.querySelector('#dungeon-attack').click();
     }
     Math.random = window.__e2eRandom;
@@ -363,9 +419,18 @@ try {
   // A second elite on the same day must not grant the daily bonus again.
   const goldAfterFirstElite = eliteFight.gold;
   await evaluate(stateExpression(`(state) => {
-    state.dungeon.floor = 10;
-    state.dungeon.hp = 50;
-    state.dungeon.enemyHp = 1;
+    state.dungeon = {
+      floor: 10,
+      size: 3,
+      types: ["start", "boss", "monster", "treasure", "monster", "merchant", "trap", "altar", "monster"],
+      pos: 1,
+      visited: [true, true, false, false, false, false, false, false, false],
+      cleared: [true, false, false, false, false, false, false, false, false],
+      hp: 50,
+      enemyHp: 1,
+      burn: 0,
+      frozen: false
+    };
     state.deepestFloor = 10;
     localStorage.setItem('questlog_state_v1', JSON.stringify(state));
     return true;
@@ -377,7 +442,7 @@ try {
     const weakness = document.querySelector('[data-dungeon="enemy-weakness"]').textContent.trim();
     const map = { Feuer: 'fire', Frost: 'frost', Sturm: 'storm', Schatten: 'shadow' };
     document.querySelector('.rune-btn[data-rune="' + map[weakness] + '"]').click();
-    for (let i = 0; i < 10 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 10; i += 1) {
+    for (let i = 0; i < 20 && Number(document.querySelector('[data-dungeon="floor"]').textContent) === 10; i += 1) {
       document.querySelector('#dungeon-attack').click();
     }
     Math.random = window.__e2eRandom;
@@ -405,13 +470,14 @@ try {
       gold: state.gold,
       goldBefore,
       hp: state.dungeon.hp,
-      sprite: document.querySelector('#dungeon-enemy-sprite').dataset.element
+      cells: document.querySelectorAll('.map-cell').length,
+      arenaHidden: document.querySelector('#dungeon-arena').hidden
     };
   })()`);
   check("Run reset requires confirmation", reset.armedText.includes("Sicher?"), reset.armedText);
   check("Run reset returns to floor 1", reset.floor === 1 && reset.hp === 50, `floor ${reset.floor}, ${reset.hp} HP`);
   check("Run reset preserves gold and deepest floor", reset.gold === reset.goldBefore && reset.deepest === 11);
-  check("Run reset restores the floor 1 sprite", reset.sprite === "fire", reset.sprite);
+  check("Run reset builds a fresh 3x3 floor at the entrance", reset.cells === 9 && reset.arenaHidden, `${reset.cells} rooms`);
 
   // --- Persistence -----------------------------------------------------------
   await navigate(`/index.html?e2e=${Date.now()}`);
@@ -439,17 +505,54 @@ try {
   // --- Final layout + errors -------------------------------------------------
   const layout = await evaluate(`(() => {
     const nav = document.querySelector('.tab-nav');
+    const panel = document.querySelector('#dungeon-panel');
+    const attack = document.querySelector('#dungeon-attack');
+    const dpadButton = document.querySelector('.dpad__btn');
+    const controls = document.querySelector('.dungeon-controls');
     return {
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       navPosition: getComputedStyle(nav).position,
       touchAction: getComputedStyle(document.querySelector('.tab-nav__btn')).touchAction,
-      inputFont: getComputedStyle(document.querySelector('#quest-title')).fontSize
+      inputFont: getComputedStyle(document.querySelector('#quest-title')).fontSize,
+      panelOverflow: panel.scrollWidth - panel.clientWidth,
+      attackHeight: Math.round(attack.getBoundingClientRect().height),
+      dpadSize: Math.round(dpadButton.getBoundingClientRect().width),
+      controlsPosition: getComputedStyle(controls).position
     };
   })()`);
   check("No horizontal overflow after full flow", layout.overflow <= 0, `${layout.overflow}px`);
   check("Tab navigation is sticky", layout.navPosition === "sticky");
   check("Touch manipulation is enabled", layout.touchAction === "manipulation");
   check("Form inputs avoid iOS zoom", layout.inputFont === "16px");
+  check("Dungeon panel never overflows horizontally", layout.panelOverflow <= 0, `${layout.panelOverflow}px`);
+  check("Attack button is a thumb-sized target", layout.attackHeight >= 44, `${layout.attackHeight}px`);
+  check("DPad buttons are thumb-sized", layout.dpadSize >= 44, `${layout.dpadSize}px`);
+  check("Dungeon controls stick above the home bar", layout.controlsPosition === "sticky");
+
+  // --- Desktop layout pass ---------------------------------------------------
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 1280,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  });
+  await navigate(`/index.html?e2e=${Date.now()}`);
+  const desktop = await evaluate(`(() => {
+    document.querySelector('.tab-nav__btn[data-tab="dungeon"]').click();
+    const panel = document.querySelector('#dungeon-panel');
+    const controls = document.querySelector('.dungeon-controls');
+    return {
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      panelOverflow: panel.scrollWidth - panel.clientWidth,
+      cells: document.querySelectorAll('.map-cell').length,
+      controlsPosition: getComputedStyle(controls).position,
+      dpadWidth: Math.round(document.querySelector('.dpad').getBoundingClientRect().width),
+      attackVisible: document.querySelector('#dungeon-attack').getBoundingClientRect().width > 0
+    };
+  })()`);
+  check("Desktop dungeon layout has no overflow", desktop.overflow <= 0 && desktop.panelOverflow <= 0, `${desktop.overflow}px`);
+  check("Desktop map and DPad stay side by side", desktop.cells === 9 && desktop.dpadWidth < 200 && desktop.attackVisible, `${desktop.dpadWidth}px dpad`);
+  check("Dungeon controls are not sticky on desktop", desktop.controlsPosition === "static", desktop.controlsPosition);
 
   check("No JS exceptions", exceptions.length === 0, exceptions.join(" | "));
   check("No console errors", consoleErrors.length === 0, consoleErrors.join(" | "));

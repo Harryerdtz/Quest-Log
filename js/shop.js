@@ -1,4 +1,6 @@
 // shop.js — pixel avatar sprites, shop catalog and transactions
+import { RUNES, ELEMENT_EFFECTS, isHeroic } from "./dungeon.js";
+
 const svg = (content, className = "avatar-sprite") =>
   `<svg class="${className}" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">${content}</svg>`;
 
@@ -19,9 +21,11 @@ export const AVATARS = {
   avatar_hero: {
     id: "avatar_hero",
     name: "Der Held",
-    desc: "Standard-Recke mit goldenem Helm und großen Plänen.",
+    desc: "Standard-Recke mit goldenem Helm. Solide Basis für jeden Run.",
     price: 0,
     accent: "#ffcd38",
+    buff: { goldFind: 0.05 },
+    buffText: "+5% Goldfund",
     sprite: svg(`
       <rect x="2" y="10" width="2" height="5" fill="#e94560"/>
       <rect x="12" y="10" width="2" height="5" fill="#e94560"/>
@@ -46,9 +50,11 @@ export const AVATARS = {
   avatar_mage: {
     id: "avatar_mage",
     name: "Pixel-Magier",
-    desc: "Analysiert Nebenquests und beschwört Fokus-Tränke.",
-    price: 120,
+    desc: "Bündelt rohe Magie in präzise Elementar-Treffer.",
+    price: 650,
     accent: "#a78bfa",
+    buff: { elementPower: 0.15, crit: 0.05 },
+    buffText: "+15% Elementarschaden · +5% Krit",
     sprite: svg(`
       <rect x="6" y="0" width="4" height="1" fill="#7b5cff"/>
       <rect x="5" y="1" width="6" height="1" fill="#7b5cff"/>
@@ -73,9 +79,11 @@ export const AVATARS = {
   avatar_rogue: {
     id: "avatar_rogue",
     name: "Neon-Schurke",
-    desc: "Erledigt Quests lautlos — und ist trotzdem ständig online.",
-    price: 180,
+    desc: "Erledigt Quests lautlos — und trifft, bevor der Gegner blinzelt.",
+    price: 1200,
     accent: "#4eef91",
+    buff: { crit: 0.15, dodge: 0.1 },
+    buffText: "+15% Krit · +10% Ausweichen",
     sprite: svg(`
       <rect x="4" y="1" width="8" height="1" fill="#33405a"/>
       <rect x="3" y="2" width="10" height="3" fill="#33405a"/>
@@ -96,9 +104,11 @@ export const AVATARS = {
   avatar_knight: {
     id: "avatar_knight",
     name: "Gold-Ritter",
-    desc: "Eine Rüstung aus reinem XP. Poliert nach jedem Level-Up.",
-    price: 260,
+    desc: "Eine Rüstung aus reinem XP. Steht wie eine Burgmauer.",
+    price: 1500,
     accent: "#e94560",
+    buff: { maxHp: 30, defense: 5 },
+    buffText: "+30 max. HP · +5 Verteidigung",
     sprite: svg(`
       <rect x="7" y="0" width="2" height="2" fill="#4eef91"/>
       <rect x="7" y="2" width="2" height="1" fill="#4eef91"/>
@@ -150,6 +160,25 @@ const playIcon = svg(`
   <rect x="11" y="7" width="1" height="2" fill="#4eef91"/>
 `, "shop-icon");
 
+const magnetIcon = svg(`
+  <rect x="4" y="1" width="8" height="2" fill="#cfd6e6"/>
+  <rect x="3" y="3" width="2" height="6" fill="#e94560"/>
+  <rect x="11" y="3" width="2" height="6" fill="#e94560"/>
+  <rect x="3" y="9" width="2" height="3" fill="#cfd6e6"/>
+  <rect x="11" y="9" width="2" height="3" fill="#cfd6e6"/>
+  <rect x="5" y="11" width="2" height="2" fill="#ffcd38"/>
+  <rect x="9" y="11" width="2" height="2" fill="#ffcd38"/>
+`, "shop-icon");
+
+const bossPotionIcon = svg(`
+  <rect x="5" y="1" width="6" height="2" fill="#cfd6e6"/>
+  <rect x="6" y="3" width="4" height="2" fill="#8b90a6"/>
+  <rect x="4" y="5" width="8" height="3" fill="#e94560"/>
+  <rect x="3" y="8" width="10" height="4" fill="#e94560"/>
+  <rect x="5" y="9" width="2" height="2" fill="#ff9fae"/>
+  <rect x="9" y="10" width="2" height="1" fill="#ffcd38"/>
+`, "shop-icon");
+
 export const SHOP_ITEMS = [
   ...Object.values(AVATARS).map((avatar) => ({
     id: avatar.id,
@@ -159,12 +188,14 @@ export const SHOP_ITEMS = [
     price: avatar.price,
     accent: avatar.accent,
     sprite: avatar.sprite,
+    buff: avatar.buff,
+    buffText: avatar.buffText,
   })),
   {
     id: "booster_xp",
     type: "booster",
     resource: "xp",
-    name: "XP-Booster",
+    name: "XP-Elexier",
     desc: "+50% XP für die nächsten 10 abgeschlossenen Quests.",
     price: 150,
     charges: 10,
@@ -175,12 +206,34 @@ export const SHOP_ITEMS = [
     id: "booster_gold",
     type: "booster",
     resource: "gold",
-    name: "Gold-Booster",
+    name: "Gold-Elexier",
     desc: "+50% Gold für die nächsten 10 abgeschlossenen Quests.",
     price: 120,
     charges: 10,
     accent: "#4eef91",
     icon: COIN_SVG.replace("coin-icon", "shop-icon"),
+  },
+  {
+    id: "booster_loot",
+    type: "booster",
+    resource: "loot",
+    name: "Loot-Magnet",
+    desc: "+50% Gold aus Dungeon-Räumen für 10 Belohnungen.",
+    price: 160,
+    charges: 10,
+    accent: "#7fd4ff",
+    icon: magnetIcon,
+  },
+  {
+    id: "booster_boss",
+    type: "booster",
+    resource: "boss",
+    name: "Boss-Trank",
+    desc: "+50% Schaden gegen Raumwächter und Bosse für 5 Treffer.",
+    price: 180,
+    charges: 5,
+    accent: "#e94560",
+    icon: bossPotionIcon,
   },
   {
     id: "reward_coffee",
@@ -202,30 +255,72 @@ export const SHOP_ITEMS = [
   },
 ];
 
-export function getShopItem(id) {
-  return SHOP_ITEMS.find((item) => item.id === id) || null;
+export const RUNE_ITEMS = RUNES.map((rune, index) => ({
+  id: `rune_${rune.id}`,
+  type: "rune",
+  rune: rune.id,
+  name: `Rune: ${rune.name}`,
+  desc: ELEMENT_EFFECTS[rune.id],
+  price: [120, 140, 160, 180][index],
+  accent: rune.color,
+  icon: COIN_SVG.replace("coin-icon", "shop-icon"),
+  buffText: ELEMENT_EFFECTS[rune.id],
+}));
+
+export function itemPrice(item, mode = "normal") {
+  if (!item) return 0;
+  return Math.round(item.price * (isHeroic(mode) ? 1.75 : 1));
 }
 
-export function buyItem(state, item) {
+export function getShopItem(id) {
+  return SHOP_ITEMS.find((item) => item.id === id) || RUNE_ITEMS.find((item) => item.id === id) || null;
+}
+
+export function buyItem(state, item, mode = "normal") {
   if (!item) return { ok: false, reason: "missing" };
-  if (state.gold < item.price) return { ok: false, reason: "gold" };
+  const price = itemPrice(item, mode);
+  if (state.gold < price) return { ok: false, reason: "gold" };
 
   if (item.type === "cosmetic") {
     if (state.owned.includes(item.id)) return { ok: false, reason: "owned" };
-    state.gold -= item.price;
+    state.gold -= price;
     state.owned.push(item.id);
-    return { ok: true, message: `${item.name} gekauft. Jetzt ausrüsten!` };
+    return { ok: true, price, message: `${item.name} gekauft. Jetzt ausrüsten!` };
   }
 
   if (item.type === "booster") {
-    state.gold -= item.price;
-    if (item.resource === "xp") state.boosterXp += item.charges;
-    else state.boosterGold += item.charges;
-    return { ok: true, message: `${item.name}: +${item.charges} Ladungen aktiviert.` };
+    state.gold -= price;
+    if (item.resource === "xp") state.boosterXp = (state.boosterXp || 0) + item.charges;
+    else if (item.resource === "gold") state.boosterGold = (state.boosterGold || 0) + item.charges;
+    else if (item.resource === "loot") state.boosterLoot = (state.boosterLoot || 0) + item.charges;
+    else if (item.resource === "boss") state.boosterBoss = (state.boosterBoss || 0) + item.charges;
+    return { ok: true, price, message: `${item.name}: +${item.charges} Ladungen aktiviert.` };
   }
 
-  state.gold -= item.price;
-  return { ok: true, message: `Belohnung eingelöst: ${item.name}.` };
+  state.gold -= price;
+  return { ok: true, price, message: `Belohnung eingelöst: ${item.name}.` };
+}
+
+export function buyRune(state, item, mode = "normal") {
+  if (!item || item.type !== "rune") return { ok: false, reason: "invalid" };
+  if (state.runes.includes(item.rune)) return { ok: false, reason: "owned" };
+  const price = itemPrice(item, mode);
+  if (state.gold < price) return { ok: false, reason: "gold" };
+  state.gold -= price;
+  state.runes.push(item.rune);
+  if (!state.rune) state.rune = item.rune;
+  return { ok: true, price, message: `${item.name} freigeschaltet.` };
+}
+
+export function equipRune(state, item) {
+  if (!item || item.type !== "rune") return { ok: false, reason: "invalid" };
+  if (!state.runes.includes(item.rune)) return { ok: false, reason: "locked" };
+  state.rune = item.rune;
+  return { ok: true, message: `${item.name} aktiviert.` };
+}
+
+export function avatarBuff(avatarId) {
+  return AVATARS[avatarId]?.buff || {};
 }
 
 export function equipAvatar(state, item) {

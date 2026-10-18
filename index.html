@@ -20,7 +20,7 @@
   <div id="app" data-theme="pixel">
     <header class="app-header">
       <div class="brand">
-        <p class="brand__eyebrow">8-Bit Productivity</p>
+        <p class="brand__eyebrow">8-Bit-Produktivität</p>
         <h1 class="app-title">QuestLog</h1>
       </div>
 
@@ -32,7 +32,7 @@
 
         <div class="player-info">
           <div class="player-row">
-            <span class="player-name">Hero</span>
+            <span class="player-name">Held</span>
             <span class="streak" title="Tages-Streak">
               <svg class="streak__icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
                 <rect x="3" y="0" width="2" height="1" fill="#e94560" />
@@ -43,7 +43,7 @@
                 <rect x="3" y="4" width="2" height="2" fill="#fff3c4" />
               </svg>
               <span class="streak__value" data-stat="streak">0</span>
-              <span class="streak__label">Streak</span>
+              <span class="streak__label">Serie</span>
             </span>
             <button class="wallet" id="btn-shop" type="button" aria-label="Pixel Bazaar öffnen">
               <svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
@@ -58,7 +58,7 @@
                 <rect x="2" y="6" width="4" height="1" fill="#b8860b" />
               </svg>
               <span class="wallet__amount" data-gold>250</span>
-              <span class="wallet__label">Shop</span>
+              <span class="wallet__label">Basar</span>
             </button>
           </div>
 
@@ -93,7 +93,7 @@
           <rect x="5" y="7" width="2" height="4" fill="#101216"/>
           <rect x="6" y="0" width="1" height="2" fill="#e94560"/>
         </svg>
-        <span>Dungeon &amp; Boss</span>
+        <span>Verlies &amp; Boss</span>
       </button>
       <button class="tab-nav__btn" type="button" data-tab="shop">
         <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
@@ -103,7 +103,7 @@
           <rect x="3" y="5" width="6" height="2" fill="#7a4a1f"/>
           <rect x="5" y="7" width="2" height="2" fill="#ffcd38"/>
         </svg>
-        <span>Shop</span>
+        <span>Basar</span>
       </button>
       <button class="tab-nav__btn" type="button" data-tab="settings">
         <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
@@ -124,12 +124,12 @@
           <section class="panel panel--create" data-panel="create">
             <header class="panel__head">
               <h2 class="panel__title">Neue Quest</h2>
-              <span class="panel__hint">Schnell erfassen</span>
+              <span class="panel__hint">Schnell notiert</span>
             </header>
 
             <form id="quest-form" class="quest-form quest-form--compact" autocomplete="off">
               <div class="field field--title">
-                <label for="quest-title">Quest-Titel</label>
+                <label for="quest-title">Questname</label>
                 <input type="text" id="quest-title" name="title" placeholder="z. B. 30 Min lernen" maxlength="80" required />
               </div>
 
@@ -139,18 +139,18 @@
                   <input type="hidden" id="quest-category" name="category" value="daily" />
                   <button type="button" class="dropdown__trigger" id="category-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="category-label category-trigger">
                     <span class="dropdown__icon" data-dropdown-icon aria-hidden="true">◆</span>
-                    <span class="dropdown__value" data-dropdown-value>Daily</span>
+                    <span class="dropdown__value" data-dropdown-value>Täglich</span>
                     <span class="dropdown__chevron" aria-hidden="true"></span>
                   </button>
                   <ul class="dropdown__menu" role="listbox" aria-labelledby="category-label" hidden>
-                    <li class="dropdown__option is-selected" role="option" aria-selected="true" data-value="daily" data-label="Daily" data-icon="◆" tabindex="-1">
+                    <li class="dropdown__option is-selected" role="option" aria-selected="true" data-value="daily" data-label="Täglich" data-icon="◆" tabindex="-1">
                       <span class="dropdown__option-icon" aria-hidden="true">◆</span>
-                      <span class="dropdown__option-text">Daily</span>
+                      <span class="dropdown__option-text">Täglich</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="active" data-label="Active" data-icon="▲" tabindex="-1">
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="active" data-label="Aktiv" data-icon="▲" tabindex="-1">
                       <span class="dropdown__option-icon" aria-hidden="true">▲</span>
-                      <span class="dropdown__option-text">Active</span>
+                      <span class="dropdown__option-text">Aktiv</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
                   </ul>
@@ -158,7 +158,7 @@
               </div>
 
               <div class="field">
-                <span class="field__label" id="difficulty-label">Auto-XP</span>
+                <span class="field__label" id="difficulty-label">Erfahrung</span>
                 <div class="dropdown" data-dropdown="difficulty">
                   <input type="hidden" id="quest-difficulty" name="difficulty" value="auto" />
                   <button type="button" class="dropdown__trigger dropdown__trigger--xp" id="difficulty-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="difficulty-label difficulty-trigger">
@@ -174,21 +174,21 @@
                       <span class="dropdown__option-xp" data-option-xp>+25 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="easy" data-label="Easy" data-icon="◇" data-difficulty="easy" tabindex="-1">
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="easy" data-label="Leicht" data-icon="◇" data-difficulty="easy" tabindex="-1">
                       <span class="dropdown__option-icon" aria-hidden="true">◇</span>
-                      <span class="dropdown__option-text">Easy</span>
+                      <span class="dropdown__option-text">Leicht</span>
                       <span class="dropdown__option-xp" data-option-xp>+10 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="medium" data-label="Medium" data-icon="◆" data-difficulty="medium" tabindex="-1">
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="medium" data-label="Mittel" data-icon="◆" data-difficulty="medium" tabindex="-1">
                       <span class="dropdown__option-icon" aria-hidden="true">◆</span>
-                      <span class="dropdown__option-text">Medium</span>
+                      <span class="dropdown__option-text">Mittel</span>
                       <span class="dropdown__option-xp" data-option-xp>+25 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
-                    <li class="dropdown__option" role="option" aria-selected="false" data-value="hard" data-label="Hard" data-icon="◆" data-difficulty="hard" tabindex="-1">
+                    <li class="dropdown__option" role="option" aria-selected="false" data-value="hard" data-label="Schwer" data-icon="◆" data-difficulty="hard" tabindex="-1">
                       <span class="dropdown__option-icon" aria-hidden="true">◆</span>
-                      <span class="dropdown__option-text">Hard</span>
+                      <span class="dropdown__option-text">Schwer</span>
                       <span class="dropdown__option-xp" data-option-xp>+50 XP</span>
                       <span class="dropdown__check" aria-hidden="true"></span>
                     </li>
@@ -204,26 +204,40 @@
 
               <button type="submit" class="btn btn--primary quest-form__submit">
                 <span class="btn__icon" aria-hidden="true">+</span>
-                Starten
+                Quest starten
               </button>
             </form>
-            <p class="quest-form__hint" id="difficulty-hint">AUTO schätzt anhand des Titels.</p>
+            <p class="quest-form__hint" id="difficulty-hint">AUTO schätzt die Stufe anhand des Questnamens.</p>
           </section>
 
           <section class="panel" data-panel="daily">
             <header class="panel__head">
-              <h2 class="panel__title">Daily Quests</h2>
-              <span class="panel__count" data-count="daily" aria-label="Anzahl Daily Quests">0</span>
+              <h2 class="panel__title">Tagesquests</h2>
+              <span class="panel__count" data-count="daily" aria-label="Anzahl Tagesquests">0</span>
             </header>
-            <ul id="daily-list" class="quest-list" aria-label="Daily Quests"></ul>
+            <div class="quest-progress" data-progress="daily">
+              <span class="quest-progress__label">Tagesroutine</span>
+              <span class="quest-progress__count" data-progress-count="daily">0 / 0</span>
+              <div class="quest-progress__track" role="progressbar" aria-label="Fortschritt Tagesquests" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-progress-bar="daily">
+                <div class="quest-progress__fill" data-progress-fill="daily"></div>
+              </div>
+            </div>
+            <ul id="daily-list" class="quest-list" aria-label="Tagesquests"></ul>
           </section>
 
           <section class="panel" data-panel="active">
             <header class="panel__head">
-              <h2 class="panel__title">Active Quests</h2>
-              <span class="panel__count" data-count="active" aria-label="Anzahl Active Quests">0</span>
+              <h2 class="panel__title">Aktive Quests</h2>
+              <span class="panel__count" data-count="active" aria-label="Anzahl aktive Quests">0</span>
             </header>
-            <ul id="active-list" class="quest-list" aria-label="Active Quests"></ul>
+            <div class="quest-progress" data-progress="active">
+              <span class="quest-progress__label">Abenteuer</span>
+              <span class="quest-progress__count" data-progress-count="active">0 / 0</span>
+              <div class="quest-progress__track" role="progressbar" aria-label="Fortschritt aktive Quests" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-progress-bar="active">
+                <div class="quest-progress__fill" data-progress-fill="active"></div>
+              </div>
+            </div>
+            <ul id="active-list" class="quest-list" aria-label="Aktive Quests"></ul>
           </section>
         </div>
       </section>
@@ -232,7 +246,7 @@
         <div class="dungeon-layout">
           <article class="panel boss-panel" data-panel="boss" id="boss-panel">
             <header class="panel__head">
-              <h2 class="panel__title">Boss Raid</h2>
+              <h2 class="panel__title">Boss-Raid</h2>
               <span class="boss-level">LV <span data-boss="level">1</span></span>
             </header>
 
@@ -275,7 +289,7 @@
 
           <aside class="panel loot-panel" data-panel="loot" id="loot-panel">
             <header class="panel__head">
-              <h2 class="panel__title">Idle-Loot</h2>
+              <h2 class="panel__title">AFK-Beute</h2>
               <span class="panel__hint">AFK-Gold</span>
             </header>
 
@@ -326,47 +340,58 @@
 
           <article class="panel dungeon-panel" data-panel="dungeon" id="dungeon-panel">
             <header class="panel__head">
-              <h2 class="panel__title">Dungeon Crawler</h2>
+              <h2 class="panel__title">Verlies-Karte</h2>
               <div class="dungeon-head__meta">
-                <span class="elite-daily" data-dungeon="elite-daily">Tagesbonus: +150 G</span>
-                <span class="dungeon-floor">Etage <span data-dungeon="floor">1</span></span>
+                <span class="elite-daily" data-dungeon="elite-daily">Elite-Tagesbonus: +150 G</span>
+                <span class="dungeon-floor">Etage <span data-dungeon="floor">1</span> · <span data-dungeon="map-size">3×3</span></span>
               </div>
             </header>
 
-            <div class="dungeon-arena">
+            <div class="dungeon-map-wrap">
+              <div class="dungeon-map" id="dungeon-map" role="grid" aria-label="Etagenkarte"></div>
+              <div class="map-legend" aria-hidden="true">
+                <span><b class="map-legend__glyph">⚔</b> Monster</span>
+                <span><b class="map-legend__glyph">▣</b> Beute</span>
+                <span><b class="map-legend__glyph">⚑</b> Händler</span>
+                <span><b class="map-legend__glyph">✦</b> Altar</span>
+                <span><b class="map-legend__glyph">☠</b> Boss</span>
+              </div>
+            </div>
+
+            <div class="room-card" id="room-card" data-room-type="start">
+              <span class="room-card__icon" data-room="icon" aria-hidden="true">◆</span>
+              <div class="room-card__body">
+                <h3 class="room-card__name" data-room="name">Eingang</h3>
+                <p class="room-card__desc" data-room="desc">Der Eingang. Von hier aus beginnt dein Run.</p>
+                <div class="room-card__actions" id="room-actions"></div>
+              </div>
+            </div>
+
+            <div class="dungeon-arena" id="dungeon-arena" hidden>
               <div class="fighter">
                 <div class="fighter__sprite" id="dungeon-hero-sprite" aria-hidden="true"></div>
-                <span class="fighter__name">Hero</span>
+                <span class="fighter__name">Held</span>
                 <div class="mini-hp" role="progressbar" aria-label="Helden-Lebenspunkte" aria-valuemin="0" aria-valuemax="50" aria-valuenow="50">
                   <div class="mini-hp__fill mini-hp__fill--hero" data-dungeon="hero-hp-fill"></div>
                   <span class="mini-hp__label"><span data-dungeon="hero-hp">50</span>/<span data-dungeon="hero-maxhp">50</span> HP</span>
                 </div>
                 <div class="fighter__element">
                   <span class="element-dot" data-dungeon="hero-element-dot" aria-hidden="true"></span>
-                  <span data-dungeon="hero-element">Feuer</span>
+                  <span data-dungeon="hero-element">Keine Rune</span>
                 </div>
                 <div class="fighter__stats">
                   <span>ANG <b data-dungeon="attack">10</b></span>
                   <span>DEF <b data-dungeon="defense">0</b></span>
                   <span>KRI <b data-dungeon="crit">5%</b></span>
+                  <span>AUS <b data-dungeon="dodge">2%</b></span>
                 </div>
               </div>
 
               <div class="dungeon-vs" aria-hidden="true">VS</div>
 
               <div class="fighter fighter--enemy">
-                <div class="fighter__sprite" id="dungeon-enemy-sprite" data-element="fire">
-                  <svg class="enemy-sprite" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
-                    <rect x="6" y="3" width="4" height="1" fill="#4eef91"/>
-                    <rect x="4" y="4" width="8" height="2" fill="#4eef91"/>
-                    <rect x="2" y="6" width="12" height="7" fill="#4eef91"/>
-                    <rect x="3" y="13" width="10" height="2" fill="#14803e"/>
-                    <rect x="5" y="8" width="2" height="2" fill="#101216"/>
-                    <rect x="9" y="8" width="2" height="2" fill="#101216"/>
-                    <rect x="6" y="11" width="4" height="1" fill="#101216"/>
-                  </svg>
-                </div>
-                <span class="fighter__name" data-dungeon="enemy-name">Goblin-Schreiber</span>
+                <div class="fighter__sprite" id="dungeon-enemy-sprite" data-element="fire"></div>
+                <span class="fighter__name" data-dungeon="enemy-name">Gegner</span>
                 <div class="mini-hp" role="progressbar" aria-label="Gegner-Lebenspunkte" aria-valuemin="0" aria-valuemax="28" aria-valuenow="28">
                   <div class="mini-hp__fill mini-hp__fill--enemy" data-dungeon="enemy-hp-fill"></div>
                   <span class="mini-hp__label"><span data-dungeon="enemy-hp">28</span>/<span data-dungeon="enemy-maxhp">28</span> HP</span>
@@ -388,21 +413,35 @@
             <div class="rune-bar">
               <span class="rune-bar__label">Rune</span>
               <div class="rune-picker" role="group" aria-label="Angriffs-Rune wählen">
-                <button class="rune-btn is-active" type="button" data-rune="fire" aria-pressed="true"><span class="element-dot" style="--element:#ff8a3d" aria-hidden="true"></span>Feuer</button>
-                <button class="rune-btn" type="button" data-rune="frost" aria-pressed="false"><span class="element-dot" style="--element:#7fd4ff" aria-hidden="true"></span>Frost</button>
-                <button class="rune-btn" type="button" data-rune="storm" aria-pressed="false"><span class="element-dot" style="--element:#ffcd38" aria-hidden="true"></span>Sturm</button>
-                <button class="rune-btn" type="button" data-rune="shadow" aria-pressed="false"><span class="element-dot" style="--element:#a78bfa" aria-hidden="true"></span>Schatten</button>
+                <button class="rune-btn" type="button" data-rune="fire" aria-pressed="false" disabled><span class="element-dot" style="--element:#ff8a3d" aria-hidden="true"></span>Feuer</button>
+                <button class="rune-btn" type="button" data-rune="frost" aria-pressed="false" disabled><span class="element-dot" style="--element:#7fd4ff" aria-hidden="true"></span>Frost</button>
+                <button class="rune-btn" type="button" data-rune="storm" aria-pressed="false" disabled><span class="element-dot" style="--element:#ffcd38" aria-hidden="true"></span>Sturm</button>
+                <button class="rune-btn" type="button" data-rune="shadow" aria-pressed="false" disabled><span class="element-dot" style="--element:#a78bfa" aria-hidden="true"></span>Schatten</button>
               </div>
             </div>
 
-            <div class="dungeon-actions">
-              <button class="btn btn--primary" id="dungeon-attack" type="button">Vorstoß</button>
-              <button class="btn btn--ghost" type="button" data-tab="shop" data-shop-category="equipment">Upgrades</button>
-              <button class="btn btn--ghost" id="dungeon-reset" type="button">Run neu starten</button>
-              <span class="dungeon-reward">Belohnung <span class="coin-icon-wrap"><svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="0" width="4" height="1" fill="#ffcd38"/><rect x="1" y="1" width="6" height="6" fill="#ffcd38"/><rect x="2" y="7" width="4" height="1" fill="#ffcd38"/><rect x="2" y="1" width="4" height="1" fill="#ffe37a"/><rect x="5" y="2" width="2" height="4" fill="#b8860b"/><rect x="2" y="6" width="4" height="1" fill="#b8860b"/></svg></span> <span data-dungeon="reward">15</span></span>
+            <div class="dungeon-controls">
+              <div class="dpad" role="group" aria-label="Bewegung durch das Verlies">
+                <button class="dpad__btn dpad__btn--up" type="button" data-move="up" aria-label="Nach oben gehen">▲</button>
+                <button class="dpad__btn dpad__btn--left" type="button" data-move="left" aria-label="Nach links gehen">◀</button>
+                <span class="dpad__center" aria-hidden="true">◆</span>
+                <button class="dpad__btn dpad__btn--right" type="button" data-move="right" aria-label="Nach rechts gehen">▶</button>
+                <button class="dpad__btn dpad__btn--down" type="button" data-move="down" aria-label="Nach unten gehen">▼</button>
+              </div>
+
+              <div class="dungeon-controls__actions">
+                <button class="btn btn--primary" id="dungeon-attack" type="button" disabled>Angriff</button>
+                <button class="btn btn--ghost" type="button" data-tab="shop" data-shop-category="equipment">Bazaar</button>
+                <button class="btn btn--ghost" id="dungeon-reset" type="button">Run beenden</button>
+              </div>
             </div>
-            <p class="dungeon-hint" data-dungeon="status">Besiege Gegner, steige tiefer und kaufe Upgrades im Pixel Bazaar.</p>
-            <p class="combat-log" data-dungeon="log" aria-live="polite">Wähle eine Rune, die zur Schwäche des Gegners passt.</p>
+
+            <div class="dungeon-meta-row">
+              <span class="dungeon-reward">Beute <span class="coin-icon-wrap"><svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="0" width="4" height="1" fill="#ffcd38"/><rect x="1" y="1" width="6" height="6" fill="#ffcd38"/><rect x="2" y="7" width="4" height="1" fill="#ffcd38"/><rect x="2" y="1" width="4" height="1" fill="#ffe37a"/><rect x="5" y="2" width="2" height="4" fill="#b8860b"/><rect x="2" y="6" width="4" height="1" fill="#b8860b"/></svg></span> <span data-dungeon="reward">0</span></span>
+              <span class="dungeon-runes-owned" data-dungeon="runes-owned">0/4 Runen</span>
+            </div>
+            <p class="dungeon-hint" data-dungeon="status">Bewege dich mit dem DPad. Kämpfe starten erst im Monster- oder Boss-Raum.</p>
+            <p class="combat-log" data-dungeon="log" aria-live="polite">Erkunde die Etage und finde Truhen, Altäre und den Boss-Raum.</p>
           </article>
         </div>
       </section>
@@ -412,8 +451,8 @@
           <section class="panel shop-panel" data-panel="shop" aria-labelledby="shop-title">
             <header class="panel__head shop-head">
               <div class="shop-head__title">
-                <p class="shop-eyebrow">Pixel Bazaar</p>
-                <h2 class="panel__title" id="shop-title">Items &amp; Upgrades</h2>
+                <p class="shop-eyebrow">Pixel-Basar</p>
+                <h2 class="panel__title" id="shop-title">Ausrüstung &amp; Tränke</h2>
               </div>
               <span class="wallet wallet--static" aria-label="Goldbestand im Shop">
                 <svg class="coin-icon" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
@@ -447,7 +486,7 @@
               </button>
               <button class="shop-tab" type="button" data-shop-tab="reward" aria-pressed="false">
                 <svg class="tab-icon" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><rect x="2" y="2" width="8" height="2" fill="#ffcd38"/><rect x="3" y="4" width="7" height="2" fill="#e9a23b"/><rect x="4" y="6" width="5" height="2" fill="#ffcd38"/><rect x="5" y="8" width="3" height="2" fill="#e9a23b"/><rect x="6" y="10" width="1" height="1" fill="#ffcd38"/><rect x="4" y="4" width="1" height="1" fill="#e94560"/><rect x="7" y="5" width="1" height="1" fill="#e94560"/></svg>
-                Rewards
+                Belohnungen
               </button>
             </div>
 
@@ -465,7 +504,7 @@
         <section class="panel settings-panel" data-panel="settings">
           <header class="panel__head">
             <h2 class="panel__title">Einstellungen</h2>
-            <span class="panel__hint">Lokaler Save</span>
+            <span class="panel__hint">Lokaler Spielstand</span>
           </header>
 
           <div class="settings-grid">
@@ -481,7 +520,7 @@
 
             <article class="setting-card setting-card--wide">
               <div>
-                <h3>Game-Difficulty</h3>
+                <h3>Schwierigkeit</h3>
                 <p>Casual ist schneller und großzügiger. Heroic verlangt echtes Grinding.</p>
               </div>
               <div class="mode-toggle" role="group" aria-label="Game-Difficulty wählen">
@@ -510,12 +549,12 @@
 
             <article class="setting-card">
               <div>
-                <h3>Save-Daten</h3>
+                <h3>Spielstand</h3>
                 <p>Fortschritt als JSON sichern oder wiederherstellen.</p>
               </div>
               <div class="settings-actions">
-                <button type="button" class="btn btn--ghost btn--sm" id="btn-export">Export</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="btn-import">Import</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="btn-export">Sichern</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="btn-import">Laden</button>
               </div>
             </article>
 
@@ -524,7 +563,7 @@
                 <h3>Fortschritt</h3>
                 <p>Alle Quests, Upgrades und Ersparnisse löschen.</p>
               </div>
-              <button type="button" class="btn btn--danger btn--sm" id="btn-reset">Reset</button>
+              <button type="button" class="btn btn--danger btn--sm" id="btn-reset">Löschen</button>
             </article>
           </div>
 
@@ -532,11 +571,12 @@
             <span>Quests erledigt <b data-settings="completed">0</b></span>
             <span>Tiefste Etage <b data-settings="floor">1</b></span>
             <span>Gold <b data-settings="gold">0</b></span>
-            <span>Level <b data-settings="level">1</b></span>
-            <span>Loot gesamt <b data-settings="loot">0</b></span>
+            <span>Stufe <b data-settings="level">1</b></span>
+            <span>Beute gesamt <b data-settings="loot">0</b></span>
             <span>Monster besiegt <b data-settings="monsters">0</b></span>
             <span>Streak-Rekord <b data-settings="bestStreak">0</b></span>
             <span>Boss-Level <b data-settings="bossLevel">1</b></span>
+            <span>Runen <b data-settings="runes">0</b>/4</span>
           </div>
 
           <input type="file" id="import-file" accept="application/json" hidden />

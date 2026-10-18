@@ -13,13 +13,31 @@ function withRandom(values, fn) {
   }
 }
 
+function makeDungeon(overrides = {}) {
+  return {
+    floor: 1,
+    size: 3,
+    types: ["start", "monster", "treasure", "monster", "boss", "trap", "monster", "altar", "merchant"],
+    pos: 1,
+    visited: [true, true, false, false, false, false, false, false, false],
+    cleared: [true, false, false, false, false, false, false, false, false],
+    hp: 50,
+    enemyHp: 1,
+    burn: 0,
+    frozen: false,
+    ...overrides,
+  };
+}
+
 function makeState(overrides = {}) {
   return {
     gold: 0,
     upgrades: { weapon: 0, armor: 0, strength: 0, vitality: 0 },
+    runes: ["fire", "frost"],
     rune: "frost",
     deepestFloor: 1,
-    dungeon: { floor: 1, hp: 50, enemyHp: 1 },
+    boosterBoss: 0,
+    dungeon: makeDungeon(),
     ...overrides,
   };
 }
@@ -30,8 +48,8 @@ test("upgrade costs grow exponentially in both modes", () => {
   assert.equal(D.upgradeCost(weapon, 1), 93);
   assert.equal(D.upgradeCost(weapon, 2), 144);
   assert.equal(D.upgradeCost(weapon, 3), 223);
-  assert.equal(D.upgradeCost(weapon, 1, "heroic"), 105);
-  assert.equal(D.upgradeCost(weapon, 2, "heroic"), 184);
+  assert.equal(D.upgradeCost(weapon, 1, "heroic"), 163);
+  assert.equal(D.upgradeCost(weapon, 2, "heroic"), 252);
   assert.ok(D.upgradeCost(weapon, 4) > D.upgradeCost(weapon, 3) * 1.5);
 });
 
@@ -42,6 +60,9 @@ test("hero stats scale with upgrades and expose crit/block", () => {
     maxHp: 50,
     crit: 0.05,
     block: 0.03,
+    dodge: 0.02,
+    goldFind: 1,
+    elementPower: 0,
   });
   const stats = D.heroStats({ weapon: 2, armor: 1, strength: 3, vitality: 2 });
   assert.equal(stats.attack, 10 + 6 + 6);
@@ -50,14 +71,14 @@ test("hero stats scale with upgrades and expose crit/block", () => {
   assert.ok(stats.crit > 0.05 && stats.block > 0.03);
 });
 
-test("every fifth floor is an elemental elite with a big HP jump", () => {
-  const f4 = D.createEnemy(4);
-  const f5 = D.createEnemy(5);
+test("every fifth floor's guardian is an elite with a big HP jump", () => {
+  const f4 = D.createRoomEnemy(4, "boss");
+  const f5 = D.createRoomEnemy(5, "boss");
   assert.equal(f4.elite, false);
   assert.equal(f5.elite, true);
-  assert.match(f5.name, /^Elite:/);
+  assert.match(f5.name, /^Etagenboss:/);
   assert.ok(f5.hp > f4.hp * 2);
-  assert.ok(D.createEnemy(6).hp > f4.hp);
+  assert.ok(D.createEnemy(6).hp > D.createEnemy(4).hp);
   assert.ok(D.createEnemy(10).hp > D.createEnemy(6).hp);
 });
 
@@ -91,20 +112,21 @@ test("heroic enemies are tougher and reward more", () => {
   assert.ok(heroic.dodge > normal.dodge);
 });
 
-test("attackDungeon kills, rewards gold and advances the floor", () => {
+test("attackDungeon clears a room without skipping the floor", () => {
   const state = makeState();
   const result = withRandom([0.5], () => D.attackDungeon(state, "normal"));
-  assert.equal(result.type, "floor");
+  assert.equal(result.type, "monster");
   assert.equal(result.damage, 15); // 10 attack × 1.5 elemental weakness
-  assert.equal(state.dungeon.floor, 2);
-  assert.equal(state.deepestFloor, 2);
+  assert.equal(state.dungeon.floor, 1);
+  assert.equal(state.dungeon.cleared[1], true);
+  assert.equal(state.dungeon.enemyHp, 0);
   assert.ok(state.gold > 0);
   assert.equal(result.slain, 1);
 });
 
 test("attackDungeon applies block and counter damage", () => {
-  const state = makeState({ dungeon: { floor: 1, hp: 50, enemyHp: 999 } });
-  const result = withRandom([0.9, 0.9, 0, 0.9], () => D.attackDungeon(state, "normal"));
+  const state = makeState({ dungeon: makeDungeon({ enemyHp: 999 }) });
+  const result = withRandom([0.9, 0.9, 0.9, 0.9, 0, 0.9], () => D.attackDungeon(state, "normal"));
   assert.equal(result.type, "hit");
   assert.equal(result.blocked, true);
   assert.ok(result.counter >= 1);
@@ -112,15 +134,16 @@ test("attackDungeon applies block and counter damage", () => {
 });
 
 test("attackDungeon handles dodges and defeat", () => {
-  const dodged = makeState({ dungeon: { floor: 1, hp: 50, enemyHp: 999 } });
-  const dodgeResult = withRandom([0.9, 0], () => D.attackDungeon(dodged, "normal"));
+  const dodged = makeState({ dungeon: makeDungeon({ enemyHp: 999 }) });
+  const dodgeResult = withRandom([0.5, 0, 0.9, 0.9, 0.9], () => D.attackDungeon(dodged, "normal"));
   assert.equal(dodgeResult.dodged, true);
   assert.equal(dodgeResult.damage, 0);
 
-  const defeated = makeState({ dungeon: { floor: 3, hp: 1, enemyHp: 999 } });
-  const downResult = withRandom([0.5], () => D.attackDungeon(defeated, "normal"));
+  const defeated = makeState({ dungeon: makeDungeon({ floor: 3, hp: 1, enemyHp: 999 }) });
+  const downResult = withRandom([0.5, 0.9, 0.9, 0.9, 0.9], () => D.attackDungeon(defeated, "normal"));
   assert.equal(downResult.type, "down");
-  assert.equal(defeated.dungeon.floor, 2);
+  assert.equal(defeated.dungeon.floor, 3);
+  assert.equal(defeated.dungeon.pos, 0);
   assert.equal(defeated.dungeon.hp, 50);
 });
 
