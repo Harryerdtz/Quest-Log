@@ -153,7 +153,7 @@ const playIcon = svg(`
 export const SHOP_ITEMS = [
   ...Object.values(AVATARS).map((avatar) => ({
     id: avatar.id,
-    type: "avatar",
+    type: "cosmetic",
     name: avatar.name,
     desc: avatar.desc,
     price: avatar.price,
@@ -210,7 +210,7 @@ export function buyItem(state, item) {
   if (!item) return { ok: false, reason: "missing" };
   if (state.gold < item.price) return { ok: false, reason: "gold" };
 
-  if (item.type === "avatar") {
+  if (item.type === "cosmetic") {
     if (state.owned.includes(item.id)) return { ok: false, reason: "owned" };
     state.gold -= item.price;
     state.owned.push(item.id);
@@ -229,7 +229,7 @@ export function buyItem(state, item) {
 }
 
 export function equipAvatar(state, item) {
-  if (!item || item.type !== "avatar") return { ok: false, reason: "invalid" };
+  if (!item || item.type !== "cosmetic") return { ok: false, reason: "invalid" };
   if (!state.owned.includes(item.id)) return { ok: false, reason: "not-owned" };
   state.equippedAvatar = item.id;
   return { ok: true, message: `${item.name} ausgerüstet.` };

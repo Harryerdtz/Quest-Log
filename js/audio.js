@@ -1,11 +1,18 @@
 // audio.js — 8-bit SFX via Web Audio API
 let ctx = null;
+let muted = false;
+
 function getCtx() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   return ctx;
 }
 
+export function setMuted(value) {
+  muted = Boolean(value);
+}
+
 function tone(freq, duration, type = "square", gain = 0.15) {
+  if (muted) return;
   const c = getCtx();
   const osc = c.createOscillator();
   const g = c.createGain();
@@ -32,4 +39,8 @@ export function playError() {
 export function playCoin() {
   tone(1047, 0.06, "square", 0.1);
   setTimeout(() => tone(1319, 0.1, "square", 0.09), 70);
+}
+export function playHit() {
+  tone(170, 0.05, "square", 0.1);
+  setTimeout(() => tone(110, 0.07, "square", 0.08), 55);
 }

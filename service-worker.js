@@ -1,9 +1,9 @@
-const CACHE = "questlog-v3";
+const CACHE = "questlog-v4";
 const ASSETS = [
   "/", "/index.html", "/manifest.json",
   "/css/styles.css",
   "/js/app.js", "/js/storage.js", "/js/audio.js", "/js/quest-manager.js",
-  "/js/shop.js", "/js/raid.js"
+  "/js/shop.js", "/js/raid.js", "/js/dungeon.js"
 ];
 
 self.addEventListener("install", (e) => {
